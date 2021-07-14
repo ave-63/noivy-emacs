@@ -1,0 +1,6 @@
+# key: env
+# name: environment
+# --
+\begin{$1}
+  $0
+\end{$1}

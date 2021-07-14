@@ -1,0 +1,10 @@
+# -*- mode: snippet -*-
+# name: btwocol
+# key: btwocol
+# --
+\bbtwocol{${1:0.48}}{${2:0.48}}{
+  $3
+}{
+  $4
+}
+$0

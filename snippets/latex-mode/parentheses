@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: parentheses
+# key: dp
+# --
+\left( $1 \right)

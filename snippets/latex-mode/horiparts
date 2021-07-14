@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: horiparts
+# key: horiparts
+# --
+\begin{horiparts}{$1}
+  \item $2
+\end{horiparts}
+$0

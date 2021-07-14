@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: bparts
+# key: bparts
+# --
+\begin{bparts}
+  \part $1
+\end{bparts}
+$0

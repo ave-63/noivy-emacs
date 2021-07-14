@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: aligned
+# key: aligned
+# --
+\begin{aligned}
+  $1 &= $2 \\\\
+  $3 &= $4
+\end{aligned}
+$0

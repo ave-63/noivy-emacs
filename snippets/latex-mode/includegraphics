@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: includegraphics
+# key: includegraphics
+# --
+\includegraphics[width=$1]{$2}$0

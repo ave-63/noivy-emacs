@@ -1,0 +1,4 @@
+# key: dc
+# name: braces
+# --
+\left\\{$1\right\\}$0

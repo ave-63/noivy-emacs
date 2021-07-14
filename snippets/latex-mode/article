@@ -1,0 +1,14 @@
+# -*- mode: snippet -*-
+# name: article
+# key: article
+# --
+\documentclass[12pt, letterpaper]{article}
+\usepackage[roman]{bnotes}
+
+\begin{document}
+
+\subsection*{$1}
+
+$0
+
+\end{document}

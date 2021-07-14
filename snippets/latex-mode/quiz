@@ -1,0 +1,17 @@
+# -*- mode: snippet -*-
+# name: quiz
+# key: quiz
+# --
+\documentclass[12pt, letterpaper]{exam}
+\usepackage[roman]{bexam}
+
+\begin{document}
+\newcommand{\btitle}{HW Quiz - $1}
+\newcommand{\bcourse}{$2}
+\bmaketitlenocontent
+\begin{questions}
+
+$0
+
+\end{questions}
+\end{document}

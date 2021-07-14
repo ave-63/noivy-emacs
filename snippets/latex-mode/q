@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: q
+# key: q
+# --
+\begin{q}{$1}
+  $0
+\end{q}
