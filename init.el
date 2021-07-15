@@ -459,7 +459,9 @@
   (define-key embark-file-map (kbd "D") 'ben/dired-here)
   (defun ben/dired-here (file)
     "Open dired in this directory"
-    (dired (file-name-directory file)))
+    (if (f-directory-p file)
+	(dired file)
+      (dired (file-name-directory file))))
 
   (define-key embark-file-map (kbd "x") 'ben/xdg-open)
   (defun ben/xdg-open (file)
