@@ -1,11 +1,24 @@
 ;; Recommended by consult documentation:
 ;; -*- lexical-binding: t -*-
 
-(require 'package)
-(add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/") t)
-;; Do this when gnu elpa is down and you need to install something:
-;(setq package-archives '(("melpa" . "http://melpa.org/packages/")))
-(package-initialize)
+;; From straight.el README:
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+      (bootstrap-version 5))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
+
+;; Makes each use-package declaration also invoke straight to install package:
+(setq straight-use-package-by-default t)
+
+(straight-use-package 'use-package)
 
 (add-to-list 'custom-theme-load-path "~/.noivy-emacs.d/themes")
 
@@ -14,14 +27,7 @@
 (setq user-full-name "Ben Smith"
       user-mail-address "bensmithmath@gmail.com")
 
-(unless (package-installed-p 'use-package)
-  (package-refresh-contents)
-  (package-install 'use-package))
-(eval-when-compile
-  (require 'use-package))
-
 (use-package rainbow-delimiters
-  :ensure t
   :config
   (add-hook 'prog-mode-hook #'rainbow-delimiters-mode))
 
@@ -34,25 +40,20 @@
   (buffer-face-set 'default))
 (add-hook 'buffer-list-update-hook 'highlight-selected-window)
 
-(use-package diminish
-  :ensure t) ;gets rid of lighters with use-package :diminish
+(use-package diminish) ;gets rid of lighters with use-package :diminish
 
 (use-package delight
-  :ensure t
   :config
   (delight `((buffer-face-mode nil "face-remap"))))
 
 (use-package yascroll
-  :ensure t
   :config
   (global-yascroll-bar-mode 1)
   (setq yascroll:delay-to-hide nil))
 
-(use-package magit
-  :ensure t)
+(use-package magit)
 
 (use-package evil
-  :ensure t
   :diminish
   :init
   (setq evil-search-module "evil-search")
@@ -72,12 +73,10 @@
 
 (use-package evil-collection
   :after evil
-  :ensure t
   :config
   (evil-collection-init))
 
 (use-package evil-surround
-  :ensure t
   :config
   (global-evil-surround-mode 1)
   (setq evil-surround-pairs-alist (delete  '(40 . ("( " . " )")) evil-surround-pairs-alist))
@@ -88,7 +87,6 @@
   (push  '(123 . ("{" . "}")) evil-surround-pairs-alist))
 
 (use-package undo-fu
-  :ensure t
   :config
   (define-key evil-normal-state-map (kbd "C-/") 'undo-fu-only-undo)
   (define-key evil-normal-state-map (kbd "C-?") 'undo-fu-only-redo))
@@ -171,14 +169,11 @@
       (execute-kbd-macro [up])))
   )
 
-(use-package dired-du
-  :ensure t)
+(use-package dired-du)
 
-(use-package vterm
-  :ensure t)
+(use-package vterm)
 
 (use-package avy
-  :ensure t
   :config
   (setq avy-all-windows t)
   (evil-global-set-key 'normal (kbd "u") 'avy-goto-char-timer) ;reserved for avy
@@ -187,13 +182,11 @@
   (evil-global-set-key 'operator (kbd "u") 'avy-goto-char-timer))
 
 (use-package expand-region
-  :ensure t
   :config
   (global-set-key (kbd "M-e") 'er/expand-region) 
   (global-set-key (kbd "C-M-e") 'er/contract-region)) 
 
 (use-package corfu
-  :ensure t
   ;; Optional customizations
   :custom
   (corfu-cycle t)            ;; Enable cycling for `corfu-next/previous'
@@ -223,7 +216,6 @@
 ;  (corfu-global-mode)) ; This seems to've broken selectrum; it wouln't resize minibuffer
 
 (use-package openwith
-  :ensure t
   :config
   (openwith-mode t)
   (setq openwith-associations '(("\\.pdf\\'" "zathura" (file))
@@ -234,15 +226,18 @@
                                 ("\\.ods\\'" "soffice" (file))
 				("\\.xopp\\'" "xournalpp" (file)))))
 (use-package vertico
-  :ensure t
   :init
   (vertico-mode)
   (setq enable-recursive-minibuffers t)
-  (define-key minibuffer-local-map (kbd "C-<tab>") 'other-window))
+  (define-key minibuffer-local-map (kbd "C-<tab>") 'other-window)
+  ;; Add vertico extensions to load path and load vertico-repeat:
+  (let ((default-directory "/home/ben/.noivy-emacs.d/straight/build/vertico"))
+    (normal-top-level-add-subdirs-to-load-path))
+  (load "vertico-repeat")
+  (global-set-key (kbd "s-r") 'vertico-repeat))
 
 ;; selectrum minibuffer was unpredictably disappearing (zero height)
 ;; (use-package selectrum
-;;   :ensure t
 ;;   :custom
 ;;   (selectrum-fix-vertical-window-height t)
 ;;   :init
@@ -252,15 +247,7 @@
 ;;   (setq enable-recursive-minibuffers t)
 ;;   (define-key minibuffer-local-map (kbd "C-<tab>") 'other-window))
 
-;; TODO: Uncomment this later when it's up on MELPA!
-;; (use-package vertico-repeat
-;;   :ensure t
-;;   :after vertico
-;;   :config
-;;   (global-set-key (kbd "s-r") 'vertico-repeat))
-
 (use-package orderless
-  :ensure t
   :init
   (setq completion-styles '(orderless)
         completion-category-defaults nil)
@@ -279,13 +266,11 @@
 
 ;; integrates with vertico/selectrum to make more recent selections first
 (use-package savehist
-  :ensure t
   :init
   (savehist-mode))
 
 ;; Enable richer annotations using the Marginalia package
 (use-package marginalia
-  :ensure t
   ;; Either bind `marginalia-cycle` globally or only in the minibuffer
   :bind (:map minibuffer-local-map
          ("M-A" . marginalia-cycle))
@@ -297,7 +282,6 @@
 )
 
 (use-package consult
-  :ensure t
   :bind (;; C-c bindings (mode-specific-map)
          ;;("C-c h" . consult-history)
          ;;("C-c m" . consult-mode-command)
@@ -402,7 +386,6 @@
 )
 
 (use-package affe
-  :ensure t
   :after orderless
   :config
   ;; Configure Orderless
@@ -421,7 +404,6 @@
 
 (use-package embark
   :after evil
-  :ensure t
   :init
   (evil-define-key '(motion normal insert emacs) 'global
     (kbd "C-d") 'embark-act
@@ -486,7 +468,6 @@
       (consult-ripgrep))))
 
 (use-package embark-consult
-  :ensure t
   :after (embark consult)
   :demand t ; only necessary if you have the hook below
   ;; if you want to have consult previews as you move around an
@@ -495,18 +476,15 @@
   (embark-collect-mode . consult-preview-at-point-mode))
 
 (use-package which-key
-  :ensure t
   :diminish
   :config
   (which-key-mode)
   (global-set-key (kbd "C-h K") 'which-key-show-full-keymap))
 
 (use-package eldoc
-  :ensure t
   :diminish)
 
 (use-package doct
-  :ensure t
   :commands (doct))
 
 (use-package org
@@ -689,19 +667,16 @@ point. "
 			       (setq +latex-indent-level-item-continuation 2))))
 
 (use-package evil-tex
-  :ensure t
   :config
   (add-hook `LaTeX-mode-hook #'evil-tex-mode))
 
 (use-package yasnippet
-  :ensure t
   :config
   (setq yas-snippet-dirs '("~/.noivy-emacs.d/snippets"))
   (yas-reload-all)
   (setq yas-triggers-in-field t))
 
 (use-package markdown-mode
-  :ensure t
   :mode ("\\.md\\'" . gfm-mode)
   :commands (markdown-mode gfm-mode)
   :config
@@ -709,14 +684,12 @@ point. "
 
 ;; TODO learn how to configure lsp-mode properly!
 (use-package lsp-mode
-  :ensure t
   :commands (lsp lsp-deffered)
   :hook (lsp-mode . lsp-enable-which-key-integration)
   :config
   (add-hook `python-mode-hook #'lsp))
 
 (use-package lsp-pyright
-  :ensure t
   :hook
   (python-mode . (lambda ()
                    (require 'lsp-pyright)
