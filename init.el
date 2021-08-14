@@ -64,12 +64,10 @@
   (setq evil-undo-system 'undo-fu)
   :config
   (evil-mode 1)
+  (evil-define-key 'normal 'global (kbd "p") 'evil-paste-before)
+  (setq evil-want-minibuffer t)
   (global-set-key (kbd "C-<tab>") 'evil-window-next)
   (global-set-key (kbd "<C-iso-lefttab>") 'evil-window-prev))
-
-;; subsumed by evil-collection
-;; (use-package evil-magit
-;;   :after magit evil)
 
 (use-package evil-collection
   :after evil
@@ -95,6 +93,7 @@
   :config 
   (load-theme 'zenburnt t)
   (set-frame-font "DejaVu Sans Mono 11" nil t)
+  (setq-default indent-tabs-mode nil)
   (menu-bar-mode -1)
   (tool-bar-mode -1)
   (scroll-bar-mode -1)
@@ -102,9 +101,9 @@
   (setq mouse-wheel-scroll-amount '(1))
   ;;(fringe-mode nil)
   ;; (global-visual-line-mode)
+  (setq-default word-wrap t)
   (setq visible-bell t)
   (setq inhibit-splash-screen t)
-;  (setq meta-prefix-char nil) ;stops ESC from being weird ; breaks ALT completely!
   (show-paren-mode)
   (global-set-key (kbd "s-s") 'save-buffer)
   (global-set-key (kbd "C-s-f") 'find-file-other-window)
@@ -116,7 +115,7 @@
   (global-set-key (kbd "s-3") 'split-window-right)
   (global-set-key (kbd "s-4") 'ctl-x-4-prefix)
   (global-set-key (kbd "S-SPC") 'completion-at-point)
-  (setq dired-listing-switches "-alh")
+  (setq dired-listing-switches "--group-directories-first -alh")
   (setq-default custom-file null-device)
   ;; (setq completion-cycle-threshold 3) ;; maybe?
   (setq tab-always-indent 'complete)
@@ -133,27 +132,27 @@
     "Just like `keyboard-escape-quit` but doesn't close other windows."
     (interactive)
     (cond ((eq last-command 'mode-exited) nil)
-	  ((region-active-p)
-	   (deactivate-mark))
-	  ((> (minibuffer-depth) 0)
-	   (abort-recursive-edit))
-	  (current-prefix-arg
-	   nil)
-	  ((> (recursion-depth) 0)
-	   (exit-recursive-edit))
-	  (buffer-quit-function
-	   (funcall buffer-quit-function))
-	  ;; ((not (one-window-p t))
-	  ;;  (delete-other-windows))
-	  ((string-match "^ \\*" (buffer-name (current-buffer)))
-	   (bury-buffer))))
+          ((region-active-p)
+           (deactivate-mark))
+          ((> (minibuffer-depth) 0)
+           (abort-recursive-edit))
+          (current-prefix-arg
+           nil)
+          ((> (recursion-depth) 0)
+           (exit-recursive-edit))
+          (buffer-quit-function
+           (funcall buffer-quit-function))
+          ;; ((not (one-window-p t))
+          ;;  (delete-other-windows))
+          ((string-match "^ \\*" (buffer-name (current-buffer)))
+           (bury-buffer))))
 
   (global-set-key (kbd "s-i") 'ben/to-and-fro-minibuffer)
   (defun ben/to-and-fro-minibuffer ()
     "Go back and forth between minibuffer and other window."
     (interactive)
     (if (window-minibuffer-p (selected-window))
-	(select-window (minibuffer-selected-window))
+        (select-window (minibuffer-selected-window))
       (select-window (active-minibuffer-window))))
 
   (evil-define-key 'normal 'global (kbd "n") 'minad/down-from-outside)
@@ -171,7 +170,27 @@
 
 (use-package dired-du)
 
-(use-package vterm)
+(use-package vterm
+  :after evil
+  :config
+  (evil-define-key 'normal vterm-mode-map (kbd "p") 'vterm-yank)
+  (evil-define-key 'normal vterm-mode-map (kbd "C-p") 'vterm-yank-pop))
+
+(use-package multi-vterm)
+;; :config
+;; Not needed, because it's covered by evil-collection
+;; (add-hook 'vterm-mode-hook
+;; 	    (lambda ()
+;; 	      (setq-local evil-insert-state-cursor 'box)
+;; 	      (evil-insert-state)))
+;; (define-key vterm-mode-map [return]                      #'vterm-send-return)
+
+;; (evil-define-key 'normal vterm-mode-map (kbd ",c")       #'multi-vterm)
+;; (evil-define-key 'normal vterm-mode-map (kbd ",n")       #'multi-vterm-next)
+;; (evil-define-key 'normal vterm-mode-map (kbd ",p")       #'multi-vterm-prev)
+;; (evil-define-key 'normal vterm-mode-map (kbd "i")        #'evil-insert-resume)
+;; (evil-define-key 'normal vterm-mode-map (kbd "o")        #'evil-insert-resume)
+;; (evil-define-key 'normal vterm-mode-map (kbd "<return>") #'evil-insert-resume))
 
 (use-package avy
   :config
@@ -204,16 +223,16 @@
   ;; You may want to enable Corfu only for certain modes.
   :hook ((prog-mode . corfu-mode)
          (org-mode . corfu-mode)
-	 (LaTeX-mode . corfu-mode))
+         (LaTeX-mode . corfu-mode))
   :config
   (define-key corfu-map (kbd "TAB") 'corfu-insert)
   
-)
+  )
 
-  ;; Recommended: Enable Corfu globally.
-  ;; This is recommended since dabbrev can be used globally (M-/).
-;  :init
-;  (corfu-global-mode)) ; This seems to've broken selectrum; it wouln't resize minibuffer
+;; Recommended: Enable Corfu globally.
+;; This is recommended since dabbrev can be used globally (M-/).
+                                        ;  :init
+                                        ;  (corfu-global-mode)) ; This seems to've broken selectrum; it wouln't resize minibuffer
 
 (use-package openwith
   :config
@@ -224,17 +243,21 @@
                                 ("\\.pptx\\'" "soffice" (file))
                                 ("\\.csv\\'" "soffice" (file))
                                 ("\\.ods\\'" "soffice" (file))
-				("\\.xopp\\'" "xournalpp" (file)))))
+                                ("\\.xopp\\'" "xournalpp" (file)))))
 (use-package vertico
   :init
   (vertico-mode)
   (setq enable-recursive-minibuffers t)
+  (setq vertico-resize nil)
   (define-key minibuffer-local-map (kbd "C-<tab>") 'other-window)
   ;; Add vertico extensions to load path and load vertico-repeat:
   (let ((default-directory "/home/ben/.noivy-emacs.d/straight/build/vertico"))
     (normal-top-level-add-subdirs-to-load-path))
-  (load "vertico-repeat")
   (global-set-key (kbd "s-r") 'vertico-repeat))
+
+(use-package vertico-repeat
+  :straight vertico
+  :after vertico)
 
 ;; selectrum minibuffer was unpredictably disappearing (zero height)
 ;; (use-package selectrum
@@ -273,13 +296,13 @@
 (use-package marginalia
   ;; Either bind `marginalia-cycle` globally or only in the minibuffer
   :bind (:map minibuffer-local-map
-         ("M-A" . marginalia-cycle))
+              ("M-A" . marginalia-cycle))
   :init
   ;; Must be in the :init section of use-package such that the mode gets
   ;; enabled right away. Note that this forces loading the package.
   (marginalia-mode)
   (setq marginalia-align-offset 70) ;; moves marginalia much further from the right
-)
+  )
 
 (use-package consult
   :bind (;; C-c bindings (mode-specific-map)
@@ -298,7 +321,7 @@
          ;; ("C-M-#" . consult-register)
          ;; Other custom bindings
          ;; ("C-p" . consult-yank-pop)                ;; orig. yank-pop
-  ;; Replace bindings. Lazily loaded due by `use-package'.
+         ;; Replace bindings. Lazily loaded due by `use-package'.
          ("<help> a" . consult-apropos)            ;; orig. apropos-command
          ;; M-g bindings (goto-map)
          ("M-g e" . consult-compile-error)
@@ -383,7 +406,7 @@
   ;; (setq consult-project-root-function #'vc-root-dir)
   ;;;; 4. locate-dominating-file
   ;; (setq consult-project-root-function (lambda () (locate-dominating-file "." ".git")))
-)
+  )
 
 (use-package affe
   :after orderless
@@ -391,16 +414,16 @@
   ;; Configure Orderless
   (setq affe-regexp-function #'orderless-pattern-compiler
         affe-highlight-function #'orderless--highlight
-	;; -a is important!
-	affe-find-command  "fd -H -a --color=never -p")
+        ;; -a is important!
+        affe-find-command  "fd -H -a --color=never -p")
   (consult-customize affe-grep affe-find :preview-key (kbd "s-o"))
 
   (global-set-key (kbd "s-,")  #'(lambda () (interactive)
-				   (affe-find "/home/ben/" nil)))
+                                   (affe-find "/home/ben/" nil)))
   (global-set-key (kbd "s-.")  #'(lambda () (interactive)
-				   (affe-find default-directory nil)))
+                                   (affe-find default-directory nil)))
   (global-set-key (kbd "s-/")  #'(lambda () (interactive)
-				   (affe-find "/" nil))))
+                                   (affe-find "/" nil))))
 
 (use-package embark
   :after evil
@@ -426,11 +449,25 @@
                  nil
                  (window-parameters (mode-line-format . none))))
   ;; make which-key show action list
-  (setq embark-action-indicator
-      (lambda (map _target)
-        (which-key--show-keymap _target map nil nil 'no-paging)
-        #'which-key--hide-popup-ignore-command)
-      embark-become-indicator embark-action-indicator)
+  (defun embark-which-key-indicator ()
+    "An embark indicator that displays keymaps using which-key.
+The which-key help message will show the type and value of the
+current target followed by an ellipsis if there are further
+targets."
+    (lambda (&optional keymap targets prefix)
+      (if (null keymap)
+          (kill-buffer which-key--buffer)
+        (which-key--show-keymap
+         (if (eq (caar targets) 'embark-become)
+             "Become"
+           (format "Act on %s '%s'%s"
+                   (caar targets)
+                   (embark--truncate-target (cdar targets))
+                   (if (cdr targets) "…" "")))
+         (if prefix (lookup-key keymap prefix) keymap)
+         nil nil t))))
+
+  (setq embark-indicator #'embark-which-key-indicator)
 
   (defun embark-act-noquit ()
     "Run action but don't quit the minibuffer afterwards."
@@ -438,11 +475,19 @@
     (let ((embark-quit-after-action nil))
       (embark-act)))
 
+  (define-key embark-file-map (kbd "t") 'ben/vterm-here)
+  (defun ben/vterm-here (file)
+    "Open vterm in this directory"
+    (let ((default-directory (if (f-directory-p file)
+                                 file
+                               (file-name-directory file))))
+      (multi-vterm)))
+  
   (define-key embark-file-map (kbd "D") 'ben/dired-here)
   (defun ben/dired-here (file)
     "Open dired in this directory"
     (if (f-directory-p file)
-	(dired file)
+        (dired file)
       (dired (file-name-directory file))))
 
   (define-key embark-file-map (kbd "x") 'ben/xdg-open)
@@ -457,14 +502,16 @@
 
   (define-key embark-file-map (kbd "b") 'ben/db-link)
   (defun ben/db-link (file)
-      "Get public dropbox link to FILE, and copy it to clipboard."
-      (shell-command (concat "dropbox-cli sharelink \""
-			     file "\" | xclip -selection clipboard &> /dev/null")))
+    "Get public dropbox link to FILE, and copy it to clipboard."
+    (shell-command (concat "dropbox-cli sharelink \""
+                           file "\" | xclip -selection clipboard &> /dev/null")))
 
-  (define-key embark-file-map (kbd "g") 'ben/counsel-rg-here)
-  (defun ben/counsel-rg-here (file)
+  (define-key embark-file-map (kbd "g") 'ben/consult-rg-here)
+  (defun ben/consult-rg-here (file)
     "consult-ripgrep in this directory."
-    (let ((default-directory (file-name-directory file)))
+    (let ((default-directory (if (f-directory-p file)
+                                 file
+                               (file-name-directory file))))
       (consult-ripgrep))))
 
 (use-package embark-consult
@@ -513,28 +560,29 @@
   (setq org-src-tab-acts-natively t)
   (setq org-directory "~/org")
   (setq org-default-notes-file (concat org-directory "/gtd.org"))
-  (add-to-list 'org-show-context-detail '(occur-tree . local))
+  (setq org-clock-sound "/home/ben/org/reference/mixkit-achievement-bell-600.wav")
+  (add-to-list 'org-show-context-detail '(occur-tree . ancestors))
   (define-key org-mode-map (kbd "s-t") 'bensult-roster)
   
   (defun bensult-roster ()
-  "Use consult to choose name from roster, create an org sparse
+    "Use consult to choose name from roster, create an org sparse
 tree for it. Then show each subtree of each headline match.
 
 The value in the alist org-show-context-detail for occur-tree
 should be 'ancestors, the default."
     (interactive)
     (org-occur (consult--read roster
-			      :prompt "Roster sparse tree: "
-			      :category 'consult-location
-			      :require-match t))
+                              :prompt "Roster sparse tree: "
+                              :category 'consult-location
+                              :require-match t))
     (save-excursion
       (goto-char (point-min))
       (while t
-	(org-occur-next-match 1)
-	(outline-show-subtree))))
+        (org-occur-next-match 1)
+        (outline-show-subtree))))
   
   (defun sbr-org-insert-dwim (&optional arg)
-  "Insert another entry of the same type as the current
+    "Insert another entry of the same type as the current
 entry. For example, if the point is on a list item, then add
 another list item of the same type, and if the point is on a
 checkbox list item, then add an empty checkbox item. If instead
@@ -545,30 +593,30 @@ TODO state).
 By default, the new entry is inserted below the current
 subtree/item. With a 'C-u' prefix, insert the entry above the
 current heading/item instead. Taken from https://www.reddit.com/r/orgmode/comments/boyu8r/function_for_dwim_insertion_of_new_entries/"
-  (interactive "P")
-  (when (eq major-mode 'org-mode)
-    (let ((org-special-ctrl-a/e t)
-	  (below? (unless  (equal arg '(4)) '(4))))
-      ;; hack to ensure that the point is not after ellipses because
-      ;; that would mess up org-at-item-p etc.
-      (org-beginning-of-line)
-      (cond ((org-at-item-p) ;; at list item or checkbox
-	     (let ((org-M-RET-may-split-line nil)
-		   (org-enable-sort-checkbox nil))
-	       ;; hack to make item be inserted after the current one
-	       ;; doesn't work if we are on an empty item line
-	       (when below?
-		 (org-end-of-line))                     
-	       (org-insert-item (org-at-item-checkbox-p))))
-	    ((org-before-first-heading-p) ;; above first heading
-	     (org-insert-heading))
-	    (t ;; in some kind of heading
-	     (org-back-to-heading)
-	     (if (org-get-todo-state)
-		 ;; at TODO heading
-		 (org-insert-todo-heading t below?)
-	       ;; at non-TODO heading 
-	       (org-insert-heading below?)))))))
+    (interactive "P")
+    (when (eq major-mode 'org-mode)
+      (let ((org-special-ctrl-a/e t)
+            (below? (unless  (equal arg '(4)) '(4))))
+        ;; hack to ensure that the point is not after ellipses because
+        ;; that would mess up org-at-item-p etc.
+        (org-beginning-of-line)
+        (cond ((org-at-item-p) ;; at list item or checkbox
+               (let ((org-M-RET-may-split-line nil)
+                     (org-enable-sort-checkbox nil))
+                 ;; hack to make item be inserted after the current one
+                 ;; doesn't work if we are on an empty item line
+                 (when below?
+                   (org-end-of-line))                     
+                 (org-insert-item (org-at-item-checkbox-p))))
+              ((org-before-first-heading-p) ;; above first heading
+               (org-insert-heading))
+              (t ;; in some kind of heading
+               (org-back-to-heading)
+               (if (org-get-todo-state)
+                   ;; at TODO heading
+                   (org-insert-todo-heading t below?)
+                 ;; at non-TODO heading 
+                 (org-insert-heading below?)))))))
 
   (defun sbr-org-shift-return (&optional arg)
     "If point is at a table, copy the table cell downward (i.e.,
@@ -577,52 +625,52 @@ kind of heading or item as the current entry containing the
 point. "
     (interactive "P")
     (if (org-at-table-p)
-	(org-table-copy-down (prefix-numeric-value arg))
+        (org-table-copy-down (prefix-numeric-value arg))
       (sbr-org-insert-dwim arg)))
   
   (setq org-agenda-skip-scheduled-if-done t
         org-todo-keywords '((sequence "TODO(t)" "WAITING(w)" "|" "DONE(d)" "SOMEDAY(s)" "CANCELLED(c)"))
         org-agenda-files '("~/org/inbox.org" "~/org/gtd.org"))
-  ;(setq org-capture-templates
-  ;      (doct `(("Binding" :keys "b"
-  ;               :type entry
-  ;               :file "~/org/bindings.org"
-  ;               :function ,(defun +org-capture-heading-from-major-mode ()
-  ;                            (let* ((buffer (org-capture-get :original-buffer))
-  ;                                   (mm (with-current-buffer buffer (symbol-name major-mode))))
-  ;                              (if-let ((marker (org-find-exact-headline-in-buffer mm)))
-  ;                                  (goto-char marker)
-  ;                                (goto-char (point-max))
-  ;                                (insert "* " mm))))
-  ;               :template "* %?")
-  ;              ("Todo" :keys "i"
-  ;               :type entry
-  ;               :file "~/org/inbox.org"
-  ;               :headline "Tasks"
-  ;               :template "* %i%?")
-                ;("Tickler" :keys "t"
-                ; :type entry
-                ; :file "~/org/tickler.org"
-                ; :headline "Tickler"
-                ; :template "* %i%? \n %U"))))
+                                        ;(setq org-capture-templates
+                                        ;      (doct `(("Binding" :keys "b"
+                                        ;               :type entry
+                                        ;               :file "~/org/bindings.org"
+                                        ;               :function ,(defun +org-capture-heading-from-major-mode ()
+                                        ;                            (let* ((buffer (org-capture-get :original-buffer))
+                                        ;                                   (mm (with-current-buffer buffer (symbol-name major-mode))))
+                                        ;                              (if-let ((marker (org-find-exact-headline-in-buffer mm)))
+                                        ;                                  (goto-char marker)
+                                        ;                                (goto-char (point-max))
+                                        ;                                (insert "* " mm))))
+                                        ;               :template "* %?")
+                                        ;              ("Todo" :keys "i"
+                                        ;               :type entry
+                                        ;               :file "~/org/inbox.org"
+                                        ;               :headline "Tasks"
+                                        ;               :template "* %i%?")
+                                        ;("Tickler" :keys "t"
+                                        ; :type entry
+                                        ; :file "~/org/tickler.org"
+                                        ; :headline "Tickler"
+                                        ; :template "* %i%? \n %U"))))
   (setq org-refile-targets '(("~/org/gtd.org" :maxlevel . 4)))
-;                           ("~/org/someday.org" :level . 1)
- ;                          ("~/org/tickler.org" :maxlevel . 2)))
+                                        ;                           ("~/org/someday.org" :level . 1)
+                                        ;                          ("~/org/tickler.org" :maxlevel . 2)))
   (setq process-connection-type t)
 
   ;; Reads the roster; headings are students name under heading Roster
   (add-hook 'org-mode-hook
-	    (lambda ()
-	      ;; TODO: change stats.org to class.org or something
-	      (when (string-suffix-p "stats.org" (buffer-file-name))
-		(set (make-local-variable 'roster)  
-		     (org-element-map (org-element-parse-buffer) 'headline
-		       (lambda (hl)
-			 (when (string= "Roster"
-				      (org-element-property
-				       :raw-value (org-element-property :parent hl)))
-			   (org-element-property :raw-value hl)))))
-		(add-to-list 'completion-at-point-functions #'ben-roster-completion-at-point))))
+            (lambda ()
+              ;; TODO: change stats.org to class.org or something
+              (when (string-suffix-p "stats.org" (buffer-file-name))
+                (set (make-local-variable 'roster)  
+                     (org-element-map (org-element-parse-buffer) 'headline
+                       (lambda (hl)
+                         (when (string= "Roster"
+                                        (org-element-property
+                                         :raw-value (org-element-property :parent hl)))
+                           (org-element-property :raw-value hl)))))
+                (add-to-list 'completion-at-point-functions #'ben-roster-completion-at-point))))
   
   
   ;; (defun ben-roster-completion-at-point ()
@@ -641,22 +689,23 @@ point. "
   (defun ben-roster-completion-at-point ()
     (interactive)
     (let ((part (thing-at-point 'word))
-	  (start (save-excursion
-		   (skip-syntax-backward "^ ")
-		   (point))))
+          (start (save-excursion
+                   (skip-syntax-backward "^ ")
+                   (point))))
       (list start (point) roster :exclusive 'no)))
   )
 
-(use-package ess-r-mode
-  :mode ("\\.r\\'" . ess-r-mode))
+                                        ;(use-package ess-r-mode
+                                        ;  :mode ("\\.r\\'" . ess-r-mode))
 
 (use-package latex
+  :straight auctex
   :config
   (setq TeX-auto-save t)
   (setq TeX-parse-self t)
   (add-hook 'LaTeX-mode-hook (lambda ()
-			       (yas-minor-mode 1)
-			       (flyspell-mode)
+                               (yas-minor-mode 1)
+                               (flyspell-mode)
 			       (TeX-source-correlate-mode)
 			       (setq-default TeX-engine 'xetex
 					     TeX-PDF-mode t)
@@ -695,4 +744,5 @@ point. "
                    (require 'lsp-pyright)
                    (lsp-deferred))))
 
-
+(use-package ledger-mode
+  :mode ("\\.ledger$" . ledger-mode))
