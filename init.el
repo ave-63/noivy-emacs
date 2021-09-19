@@ -101,6 +101,7 @@
   (setq mouse-wheel-scroll-amount '(1))
   ;;(fringe-mode nil)
   ;; (global-visual-line-mode)
+  (setq-default fill-column 95)
   (setq-default word-wrap t)
   (setq visible-bell t)
   (setq inhibit-splash-screen t)
@@ -114,7 +115,7 @@
   (global-set-key (kbd "s-2") 'split-window-below)
   (global-set-key (kbd "s-3") 'split-window-right)
   (global-set-key (kbd "s-4") 'ctl-x-4-prefix)
-  (global-set-key (kbd "S-SPC") 'completion-at-point)
+  (global-set-key (kbd "C-SPC") 'completion-at-point)
   (setq dired-listing-switches "--group-directories-first -alh")
   (setq-default custom-file null-device)
   ;; (setq completion-cycle-threshold 3) ;; maybe?
@@ -209,9 +210,9 @@
   ;; Optional customizations
   :custom
   (corfu-cycle t)            ;; Enable cycling for `corfu-next/previous'
-  (corfu-auto t)             ;; Enable auto completion
+  (corfu-auto nil)             ;; Enable auto completion
   ;; (corfu-quit-at-boundary t) ;; Automatically quit at word boundary
-  ;; (corfu-quit-no-match t)    ;; Automatically quit if there is no match
+  (corfu-quit-no-match t)    ;; Automatically quit if there is no match
 
   ;; Optionally use TAB for cycling, default is `corfu-complete'.
   ;; :bind (:map corfu-map
@@ -552,7 +553,7 @@ targets."
   (define-key org-mode-map (kbd "<s-tab>") 'org-cycle)
   (define-key org-mode-map (kbd "<C-tab>") nil)
   (evil-define-key '(normal insert) org-mode-map (kbd "<M-return>") 'sbr-org-insert-dwim)
-  (define-key org-mode-map (kbd "S-SPC") 'completion-at-point)
+  (define-key org-mode-map (kbd "C-SPC") 'completion-at-point)
   (setq org-startup-indented t)
   (setq org-startup-truncated nil)
   (setq org-cycle-emulate-tab nil)
@@ -560,7 +561,8 @@ targets."
   (setq org-src-tab-acts-natively t)
   (setq org-directory "~/org")
   (setq org-default-notes-file (concat org-directory "/gtd.org"))
-  (setq org-clock-sound "/home/ben/org/reference/mixkit-achievement-bell-600.wav")
+  ;; Was this causing org-clocking-buffer exitting problems?
+  ;; (setq org-clock-sound "/home/ben/org/reference/mixkit-achievement-bell-600.wav")
   (add-to-list 'org-show-context-detail '(occur-tree . ancestors))
   (define-key org-mode-map (kbd "s-t") 'bensult-roster)
   
@@ -695,8 +697,8 @@ point. "
       (list start (point) roster :exclusive 'no)))
   )
 
-                                        ;(use-package ess-r-mode
-                                        ;  :mode ("\\.r\\'" . ess-r-mode))
+(use-package ess
+  :mode ("\\.r\\'" . ess-r-mode))
 
 (use-package latex
   :straight auctex
@@ -745,4 +747,130 @@ point. "
                    (lsp-deferred))))
 
 (use-package ledger-mode
-  :mode ("\\.ledger$" . ledger-mode))
+  :mode ("\\.ledger$" . ledger-mode)
+  :config
+  (add-hook `ledger-mode-hook (lambda ()
+                                (setq-local corfu-auto t)
+                                (setq-local corfu-auto-delay 0.1)
+                                (setq-local corfu-auto-prefix 2)
+                                (corfu-mode)))
+  
+  (evil-define-key '(normal insert) ledger-mode-map (kbd "s-j") 'ledger-navigate-next-xact-or-directive)
+  (evil-define-key '(normal insert) ledger-mode-map (kbd "s-k") 'ledger-navigate-prev-xact-or-directive)
+  (evil-define-key 'normal ledger-reconcile-mode-map (kbd "SPC") 'ledger-reconcile-toggle)
+  (evil-define-key '(normal insert) ledger-mode-map (kbd "s-t") 'ben/insert-date)
+  (evil-define-key '(normal insert) ledger-mode-map (kbd "s-a") 'ben/insert-xact)
+  (setq ledger-reconcile-buffer-line-format
+        "%(date)s %-4(code)s %-40(payee)s %-30(account)s %11(amount)s\n")
+  (defun ben/insert-date ()
+    "Insert a date using ledger-read-date which uses org-read-date."
+    (interactive)
+    (insert (concat (ledger-read-date "") " ")))
+  
+  (defun ledger-indent-line ()
+    "Indent the current line, but not if there's a number at the beginning."
+    ;; Ensure indent if the previous line was indented, BUT NO NUMBER (DATE) AT BEGINNING. - BEN
+    (let ((indent-level (save-excursion (if (and (not (progn (beginning-of-line)
+                                                             (number-at-point)))
+                                                 (zerop (forward-line -1))
+                                                 (memq (ledger-thing-at-point) '(transaction posting)))
+                                            ledger-post-account-alignment-column
+                                          0))))
+      (unless (= (current-indentation) indent-level)
+        (back-to-indentation)
+        (delete-horizontal-space t)
+        (indent-to indent-level)))
+    (when ledger-post-auto-align
+      (ledger-post-align-postings (line-beginning-position) (line-end-position))))
+  
+
+  (defun ben/insert-xact ()
+    "Insert ledger xact snippet at end of file, with lots of auto-completion.
+Before this, call bensult-read-default-acct to choose the acct for snippet."
+    (interactive)
+    (if (not (boundp 'ben//xact-snippet))
+        (error "First call bensult-read-default-acct, ya dingus"))
+    (end-of-buffer)
+    (unless (= 0 (current-column))
+      (newline))
+    (ben/insert-date)
+    (evil-append 1)
+    (save-excursion (insert ben//xact-snippet))
+    (setq outer (make-overlay (point) (+ (point) (length ben//xact-snippet)) (current-buffer) nil t))
+    (overlay-put outer 'keymap ben/insert-xact-keymap)
+    (setq acct-one (make-overlay (+ (point) 5) (+ (point) 5) (current-buffer) nil t))
+    (setq amt-one (make-overlay (+ (point) 9) (+ (point) 9) (current-buffer) nil t))
+    ;;(setq acct-two (make-overlay (+ (point) 14) (+ (point) 14) (current-buffer) nil t))
+    (setq ol-list (list acct-one amt-one))
+    (setq ben//next 0))
+
+  (defun ben//insert-xact-next-field ()
+    "Go to next field, or of done, go to end of xact and clean up."
+    (interactive)
+    (if (= ben//next 2)
+        (progn
+          (goto-char (overlay-end outer))
+          (remove-overlays)
+          (ledger-post-align-xact (point)))
+      (when (= ben//next 0)
+          (save-excursion (forward-char 5)
+                          (insert (condition-case err
+                                      (ben//matching-acct (ledger-xact-payee))
+                                    (search-failed "")))))
+      (goto-char (overlay-start (nth ben//next ol-list)))
+      (setq ben//next (1+ ben//next))
+      ))
+
+  (defun ben//abort-insert-xact ()
+    "Clean up overlays and align xact, but leave text intact. TAB will no longer
+go to next field."
+    (interactive)
+    (remove-overlays)
+    (ledger-post-align-xact (point)))
+
+  (defvar ben/insert-xact-keymap
+    (let ((map (make-sparse-keymap)))
+      (define-key map (kbd "s-l") 'ben//insert-xact-next-field)
+      (define-key map (kbd "C-g") 'ben//abort-insert-xact)
+      map))
+
+  (defun ben//set-default-acct (acct)
+    "Create ben//xact-snippet with ACCT as last posting."
+    (setq ben//xact-snippet (concat "
+      $ 
+    " acct)))
+
+  (defun bensult-read-default-acct ()
+    "Use consult to choose account for quick entry using
+ben/insert-xactname." 
+    (interactive)
+    (ben//set-default-acct (consult--read (list "liabilities:ben's card"
+                                                "liabilities:carol's card"
+                                                "assets:checking"
+                                                "assets:529"
+                                                "assets:savings")
+                              :prompt "Account for snippets: "
+                              :category 'consult-location
+                              :require-match t)))
+
+  (defun ben//matching-acct (payee)
+    (save-excursion
+      (previous-line 2)
+      (re-search-backward (concat "[[:digit:]]+/[[:digit:]]+/[[:digit:]]+ "
+                                  payee))
+      (next-line)
+      (back-to-indentation)
+      (if (string-equal (thing-at-point 'symbol) "*")
+          (forward-char 2))
+      (let ((beg (point))
+            (end (save-excursion (re-search-forward "  ")
+                                 (point))))
+        (buffer-substring-no-properties beg end))))
+  )
+
+(use-package evil-ledger
+  :ensure t
+  :after ledger-mode
+  :config
+  (setq evil-ledger-sort-key "S")
+  (add-hook 'ledger-mode-hook #'evil-ledger-mode))
