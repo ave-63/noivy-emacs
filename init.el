@@ -36,9 +36,13 @@
   (walk-windows (lambda (w)
                   (unless (eq w (selected-window))
                     (with-current-buffer (window-buffer w)
-                      (buffer-face-set '(:background "#373737"))))))
+                      (buffer-face-set '(:background "#32302f"))))))
   (buffer-face-set 'default))
 (add-hook 'buffer-list-update-hook 'highlight-selected-window)
+
+(use-package gruvbox-theme
+  :config
+  (load-theme 'gruvbox-dark-medium t))
 
 (use-package diminish) ;gets rid of lighters with use-package :diminish
 
@@ -58,6 +62,7 @@
   :init
   (setq evil-search-module "evil-search")
   (setq evil-cross-lines t)
+  (setq evil-respect-visual-line-mode t)
   (setq evil-want-integration t) ;; recommended for evil-collection
   (setq evil-want-keybinding nil) ;; required for evil-collection
   (setq evil-want-fine-undo t)
@@ -91,7 +96,7 @@
 
 (use-package emacs
   :config 
-  (load-theme 'zenburnt t)
+;;  (load-theme 'zenburnt t)
   (set-frame-font "DejaVu Sans Mono 11" nil t)
   (setq-default indent-tabs-mode nil)
   (menu-bar-mode -1)
@@ -100,7 +105,7 @@
   (recentf-mode) ;;needed for virtual buffers in consult
   (setq mouse-wheel-scroll-amount '(1))
   ;;(fringe-mode nil)
-  ;; (global-visual-line-mode)
+  (global-visual-line-mode)
   (setq-default fill-column 95)
   (setq-default word-wrap t)
   (setq visible-bell t)
@@ -383,6 +388,7 @@
    consult-ripgrep consult-git-grep consult-grep
    consult-bookmark consult-recent-file consult-xref
    consult--source-file consult--source-project-file consult--source-bookmark
+   ben/consult-rg-here
    :preview-key (kbd "M-."))
 
   ;; Optionally configure the narrowing key.
@@ -417,7 +423,7 @@
         affe-highlight-function #'orderless--highlight
         ;; -a is important!
         affe-find-command  "fd -H -a --color=never -p")
-  (consult-customize affe-grep affe-find :preview-key (kbd "s-o"))
+  (consult-customize affe-grep affe-find :preview-key (kbd "M-."))
 
   (global-set-key (kbd "s-,")  #'(lambda () (interactive)
                                    (affe-find "/home/ben/" nil)))
@@ -479,6 +485,7 @@ targets."
   (define-key embark-file-map (kbd "t") 'ben/vterm-here)
   (defun ben/vterm-here (file)
     "Open vterm in this directory"
+    (interactive "G")
     (let ((default-directory (if (f-directory-p file)
                                  file
                                (file-name-directory file))))
@@ -494,22 +501,26 @@ targets."
   (define-key embark-file-map (kbd "x") 'ben/xdg-open)
   (defun ben/xdg-open (file)
     "Open FILE with xdg-open. FILE must be absolute path."
+    (interactive "G")
     (call-process "xdg-open" nil 0 nil file))
 
   (define-key embark-file-map (kbd "a") 'ben/xournal)
   (defun ben/xournal (file)
     "Open FILE with xournal. FILE must be absolute path."
+    (interactive "G")
     (call-process "xournalpp" nil 0 nil file))
 
   (define-key embark-file-map (kbd "b") 'ben/db-link)
   (defun ben/db-link (file)
     "Get public dropbox link to FILE, and copy it to clipboard."
+    (interactive "G")
     (shell-command (concat "dropbox-cli sharelink \""
                            file "\" | xclip -selection clipboard &> /dev/null")))
 
   (define-key embark-file-map (kbd "g") 'ben/consult-rg-here)
   (defun ben/consult-rg-here (file)
     "consult-ripgrep in this directory."
+    (interactive "G")
     (let ((default-directory (if (f-directory-p file)
                                  file
                                (file-name-directory file))))
@@ -554,7 +565,7 @@ targets."
   (define-key org-mode-map (kbd "<C-tab>") nil)
   (evil-define-key '(normal insert) org-mode-map (kbd "<M-return>") 'sbr-org-insert-dwim)
   (define-key org-mode-map (kbd "C-SPC") 'completion-at-point)
-  (setq org-startup-indented t)
+  (setq org-startup-indented nil)
   (setq org-startup-truncated nil)
   (setq org-cycle-emulate-tab nil)
   (setq org-M-RET-may-split-line nil)
