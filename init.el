@@ -40,15 +40,28 @@
   (buffer-face-set 'default))
 (add-hook 'buffer-list-update-hook 'highlight-selected-window)
 
-(use-package gruvbox-theme
+;; (use-package gruvbox-theme
+;;   :config
+;;   (load-theme 'gruvbox-dark-medium t))
+
+(use-package modus-themes
+  :init
+  (setq modus-themes-italic-constructs t
+        modus-themes-bold-constructs t
+        modus-themes-syntax '(yellow-comments
+                              alt-syntax
+                              green-strings)
+        modus-themes-fringes 'subtle
+        modus-themes-paren-match '(intense bold)
+        modus-themes-region '(accented))
   :config
-  (load-theme 'gruvbox-dark-medium t))
+  (modus-themes-load-vivendi))
 
 (use-package diminish) ;gets rid of lighters with use-package :diminish
 
-(use-package delight
-  :config
-  (delight `((buffer-face-mode nil "face-remap"))))
+;; (use-package delight
+;;   :config
+;;   (delight `((buffer-face-mode nil "face-remap"))))
 
 (use-package yascroll
   :config
@@ -69,7 +82,7 @@
   (setq evil-undo-system 'undo-fu)
   :config
   (evil-mode 1)
-  (evil-define-key 'normal 'global (kbd "p") 'evil-paste-before)
+  ;; (evil-define-key 'normal 'global (kbd "p") 'evil-paste-before)
   (setq evil-want-minibuffer t)
   (global-set-key (kbd "C-<tab>") 'evil-window-next)
   (global-set-key (kbd "<C-iso-lefttab>") 'evil-window-prev))
@@ -111,6 +124,15 @@
   (setq visible-bell t)
   (setq inhibit-splash-screen t)
   (show-paren-mode)
+  ;; this puts #auto-save# files in user-emacs-directory/auto-saves/
+  (make-directory (expand-file-name "auto-saves/" user-emacs-directory) t)
+  (setq auto-save-file-name-transforms
+        (append auto-save-file-name-transforms
+                `((".*" ,(expand-file-name "auto-saves/"
+                                           user-emacs-directory) t))))
+  ;; this puts backup files in user-emacs-directory/backups/
+  (setq backup-directory-alist
+        `(("." . ,(expand-file-name "backups/" user-emacs-directory))))
   (global-set-key (kbd "s-s") 'save-buffer)
   (global-set-key (kbd "C-s-f") 'find-file-other-window)
   (global-set-key (kbd "s-e") 'eval-last-sexp)
@@ -176,13 +198,13 @@
 
 (use-package dired-du)
 
-(use-package vterm
-  :after evil
-  :config
-  (evil-define-key 'normal vterm-mode-map (kbd "p") 'vterm-yank)
-  (evil-define-key 'normal vterm-mode-map (kbd "C-p") 'vterm-yank-pop))
+;(use-package vterm
+;  :after evil
+;  :config
+;  (evil-define-key 'normal vterm-mode-map (kbd "p") 'vterm-yank)
+;  (evil-define-key 'normal vterm-mode-map (kbd "C-p") 'vterm-yank-pop))
 
-(use-package multi-vterm)
+;(use-package multi-vterm)
 ;; :config
 ;; Not needed, because it's covered by evil-collection
 ;; (add-hook 'vterm-mode-hook
@@ -254,16 +276,18 @@
   :init
   (vertico-mode)
   (setq enable-recursive-minibuffers t)
-  (setq vertico-resize nil)
+  (setq vertico-resize 'grow-only)
   (define-key minibuffer-local-map (kbd "C-<tab>") 'other-window)
   ;; Add vertico extensions to load path and load vertico-repeat:
-  (let ((default-directory "/home/ben/.noivy-emacs.d/straight/build/vertico"))
-    (normal-top-level-add-subdirs-to-load-path))
+  ;; (let ((default-directory "/home/ben/.noivy-emacs.d/straight/build/vertico"))
+  ;;   (normal-top-level-add-subdirs-to-load-path))
   (global-set-key (kbd "s-r") 'vertico-repeat))
 
 (use-package vertico-repeat
   :straight vertico
-  :after vertico)
+  :after vertico
+  :config
+  (add-hook 'minibuffer-setup-hook #'vertico-repeat-save))
 
 ;; selectrum minibuffer was unpredictably disappearing (zero height)
 ;; (use-package selectrum
@@ -377,6 +401,14 @@
   :config
   (evil-define-key 'normal 'global (kbd "/") 'consult-line)
 
+  (defun ben/consult-rg-here (file)
+    "consult-ripgrep in this directory."
+    (interactive "G")
+    (let ((default-directory (if (f-directory-p file)
+                                 file
+                               (file-name-directory file))))
+      (consult-ripgrep)))
+  
   ;; Optionally configure preview. The default value
   ;; is 'any, such that any key triggers the preview.
   ;; (setq consult-preview-key 'any)
@@ -518,13 +550,7 @@ targets."
                            file "\" | xclip -selection clipboard &> /dev/null")))
 
   (define-key embark-file-map (kbd "g") 'ben/consult-rg-here)
-  (defun ben/consult-rg-here (file)
-    "consult-ripgrep in this directory."
-    (interactive "G")
-    (let ((default-directory (if (f-directory-p file)
-                                 file
-                               (file-name-directory file))))
-      (consult-ripgrep))))
+)
 
 (use-package embark-consult
   :after (embark consult)
@@ -565,7 +591,7 @@ targets."
   (define-key org-mode-map (kbd "<C-tab>") nil)
   (evil-define-key '(normal insert) org-mode-map (kbd "<M-return>") 'sbr-org-insert-dwim)
   (define-key org-mode-map (kbd "C-SPC") 'completion-at-point)
-  (setq org-startup-indented nil)
+  (setq org-startup-indented t)
   (setq org-startup-truncated nil)
   (setq org-cycle-emulate-tab nil)
   (setq org-M-RET-may-split-line nil)
@@ -771,6 +797,20 @@ point. "
   (evil-define-key 'normal ledger-reconcile-mode-map (kbd "SPC") 'ledger-reconcile-toggle)
   (evil-define-key '(normal insert) ledger-mode-map (kbd "s-t") 'ben/insert-date)
   (evil-define-key '(normal insert) ledger-mode-map (kbd "s-a") 'ben/insert-xact)
+
+  (setq ledger-reconcile-finish-force-quit t)
+  (setq ledger-reports 
+        '(("bal" "%(binary) -f %(ledger-file) bal")
+         ("reg" "%(binary) --sort date -f %(ledger-file) reg")
+         ("payee" "%(binary) --sort date -f %(ledger-file) reg @%(payee)")
+         ("account" "%(binary) --sort date -f %(ledger-file) reg %(account)")
+         ("yearly summary by payee" "%(binary) --sort date -f %(ledger-file) -Y reg @%(payee)")
+         ("example with and" "%(binary) --sort date -f %(ledger-file) reg expenses and @amazon")
+         ("example with date range"
+          "%(binary) --sort date -p \"from 2021-06-09 to 2021-07-09\" -f %(ledger-file) reg expenses and @amazon")
+         ("example with monthly"
+          "%(binary) --sort date -M -f %(ledger-file) reg expenses:bills")))
+
   (setq ledger-reconcile-buffer-line-format
         "%(date)s %-4(code)s %-40(payee)s %-30(account)s %11(amount)s\n")
   (defun ben/insert-date ()
@@ -794,26 +834,52 @@ point. "
     (when ledger-post-auto-align
       (ledger-post-align-postings (line-beginning-position) (line-end-position))))
   
-
-  (defun ben/insert-xact ()
-    "Insert ledger xact snippet at end of file, with lots of auto-completion.
-Before this, call bensult-read-default-acct to choose the acct for snippet."
+ (defun ben/insert-xact ()
+    "Insert ledger xact snippet at end of file, with lots of auto-completion."
     (interactive)
-    (if (not (boundp 'ben//xact-snippet))
-        (error "First call bensult-read-default-acct, ya dingus"))
+    ;; (if (not (boundp 'ben//xact-snippet))
+    ;;     (error "First call bensult-read-default-acct, ya dingus"))
     (end-of-buffer)
     (unless (= 0 (current-column))
       (newline))
     (ben/insert-date)
     (evil-append 1)
-    (save-excursion (insert ben//xact-snippet))
-    (setq outer (make-overlay (point) (+ (point) (length ben//xact-snippet)) (current-buffer) nil t))
+    (let ((snippet (concat "
+      $ 
+    " (cond ((equal (buffer-name) "529.ledger") "assets:529")
+            ((equal (buffer-name) "savings.ledger") "assets:savings")
+            ((equal (buffer-name) "bens_card.ledger") "liabilities:ben's card") 
+            ((equal (buffer-name) "carols_card.ledger") "liabilities:carol's card")            
+            ((equal (buffer-name) "checking.ledger") "assets:checking")
+            ))))
+        (save-excursion (insert snippet))
+        (setq outer (make-overlay (point) (+ (point) (length snippet)) (current-buffer) nil t)))
     (overlay-put outer 'keymap ben/insert-xact-keymap)
     (setq acct-one (make-overlay (+ (point) 5) (+ (point) 5) (current-buffer) nil t))
     (setq amt-one (make-overlay (+ (point) 9) (+ (point) 9) (current-buffer) nil t))
     ;;(setq acct-two (make-overlay (+ (point) 14) (+ (point) 14) (current-buffer) nil t))
     (setq ol-list (list acct-one amt-one))
-    (setq ben//next 0))
+    (setq ben//next 0)) 
+
+;;   (defun ben/insert-xact ()
+;;     "Insert ledger xact snippet at end of file, with lots of auto-completion.
+;; Before this, call bensult-read-default-acct to choose the acct for snippet."
+;;     (interactive)
+;;     (if (not (boundp 'ben//xact-snippet))
+;;         (error "First call bensult-read-default-acct, ya dingus"))
+;;     (end-of-buffer)
+;;     (unless (= 0 (current-column))
+;;       (newline))
+;;     (ben/insert-date)
+;;     (evil-append 1)
+;;     (save-excursion (insert ben//xact-snippet))
+;;     (setq outer (make-overlay (point) (+ (point) (length ben//xact-snippet)) (current-buffer) nil t))
+;;     (overlay-put outer 'keymap ben/insert-xact-keymap)
+;;     (setq acct-one (make-overlay (+ (point) 5) (+ (point) 5) (current-buffer) nil t))
+;;     (setq amt-one (make-overlay (+ (point) 9) (+ (point) 9) (current-buffer) nil t))
+;;     ;;(setq acct-two (make-overlay (+ (point) 14) (+ (point) 14) (current-buffer) nil t))
+;;     (setq ol-list (list acct-one amt-one))
+;;     (setq ben//next 0))
 
   (defun ben//insert-xact-next-field ()
     "Go to next field, or of done, go to end of xact and clean up."
@@ -845,24 +911,24 @@ go to next field."
       (define-key map (kbd "C-g") 'ben//abort-insert-xact)
       map))
 
-  (defun ben//set-default-acct (acct)
-    "Create ben//xact-snippet with ACCT as last posting."
-    (setq ben//xact-snippet (concat "
-      $ 
-    " acct)))
+  ;; (defun ben//set-default-acct (acct)
+  ;;   "Create ben//xact-snippet with ACCT as last posting."
+  ;;   (setq ben//xact-snippet (concat "
+  ;;     $ 
+  ;;   " acct)))
 
-  (defun bensult-read-default-acct ()
-    "Use consult to choose account for quick entry using
-ben/insert-xactname." 
-    (interactive)
-    (ben//set-default-acct (consult--read (list "liabilities:ben's card"
-                                                "liabilities:carol's card"
-                                                "assets:checking"
-                                                "assets:529"
-                                                "assets:savings")
-                              :prompt "Account for snippets: "
-                              :category 'consult-location
-                              :require-match t)))
+;;   (defun bensult-read-default-acct ()
+;;     "Use consult to choose account for quick entry using
+;; ben/insert-xactname." 
+;;     (interactive)
+;;     (ben//set-default-acct (consult--read (list "liabilities:ben's card"
+;;                                                 "liabilities:carol's card"
+;;                                                 "assets:checking"
+;;                                                 "assets:529"
+;;                                                 "assets:savings")
+;;                               :prompt "Account for snippets: "
+;;                               :category 'consult-location
+;;                               :require-match t)))
 
   (defun ben//matching-acct (payee)
     (save-excursion
@@ -885,3 +951,15 @@ ben/insert-xactname."
   :config
   (setq evil-ledger-sort-key "S")
   (add-hook 'ledger-mode-hook #'evil-ledger-mode))
+
+;; This makes it so ledger-read-date defaults to 2021, for easier data entry:s
+;; (defun decode-time-mock (orig &rest args)
+;;   (if args
+;;   (apply orig args)
+;; '(0 0 0 1 1 2021 1 nil -18000)))
+
+;; (defun decode-time-mock (orig &rest args)
+;; '(0 0 0 1 1 2021 1 nil -18000))
+;; (advice-add 'decode-time :around 'decode-time-mock)
+
+;; (advice-remove 'decode-time 'decode-time-mock)
