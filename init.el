@@ -20,12 +20,18 @@
 
 (straight-use-package 'use-package)
 
-(add-to-list 'custom-theme-load-path "~/.noivy-emacs.d/themes")
+;; (add-to-list 'custom-theme-load-path "~/.noivy-emacs.d/themes")
 
 ;; Some functionality uses this to identify you, e.g. GPG configuration, email
 ;; clients, file templates and snippets.
 (setq user-full-name "Ben Smith"
       user-mail-address "bensmithmath@gmail.com")
+
+(use-package no-littering
+  :config
+  (recentf-mode) ;; needed for consult; below keeps it clean
+  (add-to-list 'recentf-exclude no-littering-var-directory)
+  (add-to-list 'recentf-exclude no-littering-etc-directory))
 
 (use-package rainbow-delimiters
   :config
@@ -36,7 +42,7 @@
   (walk-windows (lambda (w)
                   (unless (eq w (selected-window))
                     (with-current-buffer (window-buffer w)
-                      (buffer-face-set '(:background "#32302f"))))))
+                      (buffer-face-set '(:background "#303030"))))))
   (buffer-face-set 'default))
 (add-hook 'buffer-list-update-hook 'highlight-selected-window)
 
@@ -53,15 +59,32 @@
                               green-strings)
         modus-themes-fringes 'subtle
         modus-themes-paren-match '(intense bold)
-        modus-themes-region '(accented))
+        modus-themes-region '(accented)
+        modus-themes-mode-line '(moody accented))
   :config
-  (modus-themes-load-vivendi))
+  (modus-themes-load-vivendi)
+  (column-number-mode))
 
-(use-package diminish) ;gets rid of lighters with use-package :diminish
+;; hides minor modes, better than diminish
+(use-package minions
+  :config
+  (setq minions-mode-line-lighter "et al")
+  ;; NOTE: This will be expanded whenever I find a mode that should not
+  ;; be hidden
+  (setq minions-prominent-modes
+        (list 'defining-kbd-macro
+              'flymake-mode
+              'prot-simple-monocle))
+  (minions-mode 1))
 
-;; (use-package delight
-;;   :config
-;;   (delight `((buffer-face-mode nil "face-remap"))))
+;; mode line stuff
+(use-package moody
+  :config
+  (setq mode-line-position-column-line-format '("  %l,%c"))
+  (setq x-underline-at-descent-line t)
+  (moody-replace-mode-line-buffer-identification)
+  (moody-replace-vc-mode)
+  (moody-replace-eldoc-minibuffer-message-function))
 
 (use-package yascroll
   :config
@@ -71,7 +94,6 @@
 (use-package magit)
 
 (use-package evil
-  :diminish
   :init
   (setq evil-search-module "evil-search")
   (setq evil-cross-lines t)
@@ -109,13 +131,12 @@
 
 (use-package emacs
   :config 
-;;  (load-theme 'zenburnt t)
   (set-frame-font "DejaVu Sans Mono 11" nil t)
+  ;; (set-frame-font "Iosevka 12" nil t)
   (setq-default indent-tabs-mode nil)
   (menu-bar-mode -1)
   (tool-bar-mode -1)
   (scroll-bar-mode -1)
-  (recentf-mode) ;;needed for virtual buffers in consult
   (setq mouse-wheel-scroll-amount '(1))
   ;;(fringe-mode nil)
   (global-visual-line-mode)
@@ -124,6 +145,10 @@
   (setq visible-bell t)
   (setq inhibit-splash-screen t)
   (show-paren-mode)
+  (setq large-file-warning-threshold 100000000)
+  (setq native-comp-async-report-warnings-errors 'silent)
+  ;; without this, everything goes in .emacs.d
+  (add-to-list `native-comp-eln-load-path (expand-file-name "eln-cache/" user-emacs-directory))
   ;; this puts #auto-save# files in user-emacs-directory/auto-saves/
   (make-directory (expand-file-name "auto-saves/" user-emacs-directory) t)
   (setq auto-save-file-name-transforms
@@ -265,14 +290,25 @@
 (use-package openwith
   :config
   (openwith-mode t)
-  (setq openwith-associations '(("\\.pdf\\'" "zathura" (file))
+  (setq openwith-associations '(("\\.pdf\\'" "xdg-open" (file))
                                 ("\\.xlsx\\'" "soffice" (file))
                                 ("\\.docx\\'" "soffice" (file))
                                 ("\\.pptx\\'" "soffice" (file))
                                 ("\\.csv\\'" "soffice" (file))
                                 ("\\.ods\\'" "soffice" (file))
                                 ("\\.xopp\\'" "xournalpp" (file)))))
+
 (use-package vertico
+  :straight (vertico
+             :files (:defaults "extensions/*")
+             :includes (vertico-buffer
+                        vertico-directory
+                        vertico-flat
+                        vertico-indexed
+                        vertico-mouse
+                        vertico-quick
+                        vertico-repeat
+                        vertico-reverse))
   :init
   (vertico-mode)
   (setq enable-recursive-minibuffers t)
@@ -283,6 +319,9 @@
   ;;   (normal-top-level-add-subdirs-to-load-path))
   (global-set-key (kbd "s-r") 'vertico-repeat))
 
+;; This isn't working:
+;; Error (use-package): Cannot load vertico-repeat Disable showing Disable logging
+;; Figure it out some time.
 (use-package vertico-repeat
   :straight vertico
   :after vertico
@@ -331,7 +370,7 @@
   ;; Must be in the :init section of use-package such that the mode gets
   ;; enabled right away. Note that this forces loading the package.
   (marginalia-mode)
-  (setq marginalia-align-offset 70) ;; moves marginalia much further from the right
+  ;;(setq marginalia-align-offset 70) ;; moves marginalia much further from the right
   )
 
 (use-package consult
@@ -419,8 +458,8 @@
   (consult-customize
    consult-ripgrep consult-git-grep consult-grep
    consult-bookmark consult-recent-file consult-xref
-   consult--source-file consult--source-project-file consult--source-bookmark
-   ben/consult-rg-here
+   consult--source-recent-file consult--source-project-recent-file consult--source-bookmark
+   ben/consult-rg-here consult-buffer
    :preview-key (kbd "M-."))
 
   ;; Optionally configure the narrowing key.
@@ -561,13 +600,11 @@ targets."
   (embark-collect-mode . consult-preview-at-point-mode))
 
 (use-package which-key
-  :diminish
   :config
   (which-key-mode)
   (global-set-key (kbd "C-h K") 'which-key-show-full-keymap))
 
-(use-package eldoc
-  :diminish)
+(use-package eldoc)
 
 (use-package doct
   :commands (doct))
@@ -579,18 +616,18 @@ targets."
   (global-set-key (kbd "C-c c") 'org-capture)
   (setq org-goto-interface 'outline-path-completion)
   (setq org-outline-path-complete-in-steps nil)
-  (define-key org-mode-map (kbd "s-j") 'org-next-visible-heading)
-  (define-key org-mode-map (kbd "s-k") 'org-previous-visible-heading)
-  (define-key org-mode-map (kbd "s-h") 'outline-up-heading)
-  (define-key org-mode-map (kbd "s-m") 'consult-org-heading)
-  (define-key org-mode-map (kbd "M-j") 'org-metadown)
-  (define-key org-mode-map (kbd "M-k") 'org-metaup)
-  (define-key org-mode-map (kbd "M-l") 'org-metaright)
-  (define-key org-mode-map (kbd "M-h") 'org-metaleft)
-  (define-key org-mode-map (kbd "<s-tab>") 'org-cycle)
-  (define-key org-mode-map (kbd "<C-tab>") nil)
+  (evil-define-key '(normal insert) org-mode-map (kbd "s-j") 'org-next-visible-heading)
+  (evil-define-key '(normal insert) org-mode-map (kbd "s-k") 'org-previous-visible-heading)
+  (evil-define-key '(normal insert) org-mode-map (kbd "s-h") 'outline-up-heading)
+  (evil-define-key '(normal insert) org-mode-map (kbd "s-m") 'consult-org-heading)
+  (evil-define-key '(normal insert) org-mode-map (kbd "M-j") 'org-metadown)
+  (evil-define-key '(normal insert) org-mode-map (kbd "M-k") 'org-metaup)
+  (evil-define-key '(normal insert) org-mode-map (kbd "M-l") 'org-metaright)
+  (evil-define-key '(normal insert) org-mode-map (kbd "M-h") 'org-metaleft)
+  (evil-define-key '(normal insert) org-mode-map (kbd "<s-tab>") 'org-cycle)
+  (evil-define-key '(normal insert) org-mode-map (kbd "<C-tab>") nil)
   (evil-define-key '(normal insert) org-mode-map (kbd "<M-return>") 'sbr-org-insert-dwim)
-  (define-key org-mode-map (kbd "C-SPC") 'completion-at-point)
+  (evil-define-key '(normal insert) org-mode-map (kbd "C-SPC") 'completion-at-point)
   (setq org-startup-indented t)
   (setq org-startup-truncated nil)
   (setq org-cycle-emulate-tab nil)
@@ -601,7 +638,7 @@ targets."
   ;; Was this causing org-clocking-buffer exitting problems?
   ;; (setq org-clock-sound "/home/ben/org/reference/mixkit-achievement-bell-600.wav")
   (add-to-list 'org-show-context-detail '(occur-tree . ancestors))
-  (define-key org-mode-map (kbd "s-t") 'bensult-roster)
+  (evil-define-key '(normal insert) org-mode-map (kbd "s-t") 'bensult-roster)
   
   (defun bensult-roster ()
     "Use consult to choose name from roster, create an org sparse
@@ -670,31 +707,31 @@ point. "
   (setq org-agenda-skip-scheduled-if-done t
         org-todo-keywords '((sequence "TODO(t)" "WAITING(w)" "|" "DONE(d)" "SOMEDAY(s)" "CANCELLED(c)"))
         org-agenda-files '("~/org/inbox.org" "~/org/gtd.org"))
-                                        ;(setq org-capture-templates
-                                        ;      (doct `(("Binding" :keys "b"
-                                        ;               :type entry
-                                        ;               :file "~/org/bindings.org"
-                                        ;               :function ,(defun +org-capture-heading-from-major-mode ()
-                                        ;                            (let* ((buffer (org-capture-get :original-buffer))
-                                        ;                                   (mm (with-current-buffer buffer (symbol-name major-mode))))
-                                        ;                              (if-let ((marker (org-find-exact-headline-in-buffer mm)))
-                                        ;                                  (goto-char marker)
-                                        ;                                (goto-char (point-max))
-                                        ;                                (insert "* " mm))))
-                                        ;               :template "* %?")
-                                        ;              ("Todo" :keys "i"
-                                        ;               :type entry
-                                        ;               :file "~/org/inbox.org"
-                                        ;               :headline "Tasks"
-                                        ;               :template "* %i%?")
-                                        ;("Tickler" :keys "t"
-                                        ; :type entry
-                                        ; :file "~/org/tickler.org"
-                                        ; :headline "Tickler"
-                                        ; :template "* %i%? \n %U"))))
-  (setq org-refile-targets '(("~/org/gtd.org" :maxlevel . 4)))
-                                        ;                           ("~/org/someday.org" :level . 1)
-                                        ;                          ("~/org/tickler.org" :maxlevel . 2)))
+  ;; (setq org-capture-templates
+  ;;       (doct `(("Binding" :keys "b"
+  ;;                :type entry
+  ;;                :file "~/org/bindings.org"
+  ;;                :function ,(defun +org-capture-heading-from-major-mode ()
+  ;;                             (let* ((buffer (org-capture-get :original-buffer))
+  ;;                                    (mm (with-current-buffer buffer (symbol-name major-mode))))
+  ;;                               (if-let ((marker (org-find-exact-headline-in-buffer mm)))
+  ;;                                   (goto-char marker)
+  ;;                                 (goto-char (point-max))
+  ;;                                 (insert "* " mm))))
+  ;;                :template "* %?")
+  ;;               ("Todo" :keys "i"
+  ;;                :type entry
+  ;;                :file "~/org/inbox.org"
+  ;;                :headline "Tasks"
+  ;;                :template "* %i%?")
+  ;;               ("Tickler" :keys "t"
+  ;;                :type entry
+  ;;                :file "~/org/tickler.org"
+  ;;                :headline "Tickler"
+  ;;                :template "* %i%? \n %U"))))
+  ;; (setq org-refile-targets '(("~/org/gtd.org" :maxlevel . 4)))
+  ;; ("~/org/someday.org" :level . 1)
+  ;; ("~/org/tickler.org" :maxlevel . 2)))
   (setq process-connection-type t)
 
   ;; Reads the roster; headings are students name under heading Roster
@@ -961,5 +998,4 @@ go to next field."
 ;; (defun decode-time-mock (orig &rest args)
 ;; '(0 0 0 1 1 2021 1 nil -18000))
 ;; (advice-add 'decode-time :around 'decode-time-mock)
-
 ;; (advice-remove 'decode-time 'decode-time-mock)
