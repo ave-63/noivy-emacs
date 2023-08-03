@@ -42,7 +42,7 @@
   (walk-windows (lambda (w)
                   (unless (eq w (selected-window))
                     (with-current-buffer (window-buffer w)
-                      (buffer-face-set '(:background "#303030"))))))
+                      (buffer-face-set '(:background "#424139"))))))
   (buffer-face-set 'default))
 (add-hook 'buffer-list-update-hook 'highlight-selected-window)
 
@@ -50,20 +50,35 @@
 ;;   :config
 ;;   (load-theme 'gruvbox-dark-medium t))
 
-(use-package modus-themes
-  :init
-  (setq modus-themes-italic-constructs t
-        modus-themes-bold-constructs t
-        modus-themes-syntax '(yellow-comments
-                              alt-syntax
-                              green-strings)
-        modus-themes-fringes 'subtle
-        modus-themes-paren-match '(intense bold)
-        modus-themes-region '(accented)
-        modus-themes-mode-line '(moody accented))
+;; (use-package modus-themes
+;;   :init
+;;   (setq modus-themes-italic-constructs t
+;;         modus-themes-bold-constructs t
+;;         modus-themes-syntax '(yellow-comments
+;;                               alt-syntax
+;;                               green-strings)
+;;         modus-themes-fringes 'subtle
+;;         modus-themes-paren-match '(intense bold)
+;;         modus-themes-region '(accented)
+;;         modus-themes-mode-line '(moody accented))
+;;   :config
+;;   (modus-themes-load-vivendi)
+;;   (column-number-mode))
+
+(use-package ef-themes
   :config
-  (modus-themes-load-vivendi)
-  (column-number-mode))
+  (load-theme 'ef-autumn :no-confirm)
+  (setq ef-themes-headings
+        '((1 . (regular bold 1.0))
+          (2 . (1.0))
+          (3 . (1.0))
+          (4 . (1.0))
+          (5 . (1.0))
+          (6 . (1.0))
+          (7 . (1.0))
+          (8 . (1.0))))
+  (setq ef-autumn-palette-overrides
+    '((bg-main     "#1f1e16"))))
 
 ;; hides minor modes, better than diminish
 (use-package minions
@@ -146,9 +161,11 @@
   (setq inhibit-splash-screen t)
   (show-paren-mode)
   (setq large-file-warning-threshold 100000000)
+  (setq history-length 200) ;; num files in file history; default is 100
   (setq native-comp-async-report-warnings-errors 'silent)
   ;; without this, everything goes in .emacs.d
-  (add-to-list `native-comp-eln-load-path (expand-file-name "eln-cache/" user-emacs-directory))
+  ;; commented out with emacs 28.1 release
+  ;; (add-to-list `native-comp-eln-load-path (expand-file-name "eln-cache/" user-emacs-directory))
   ;; this puts #auto-save# files in user-emacs-directory/auto-saves/
   (make-directory (expand-file-name "auto-saves/" user-emacs-directory) t)
   (setq auto-save-file-name-transforms
@@ -276,7 +293,8 @@
   ;; You may want to enable Corfu only for certain modes.
   :hook ((prog-mode . corfu-mode)
          (org-mode . corfu-mode)
-         (LaTeX-mode . corfu-mode))
+         (LaTeX-mode . corfu-mode)
+         (python-mode . corfu-mode))
   :config
   (define-key corfu-map (kbd "TAB") 'corfu-insert)
   
@@ -460,7 +478,7 @@
    consult-bookmark consult-recent-file consult-xref
    consult--source-recent-file consult--source-project-recent-file consult--source-bookmark
    ben/consult-rg-here consult-buffer
-   :preview-key (kbd "M-."))
+   :preview-key "M-.")
 
   ;; Optionally configure the narrowing key.
   ;; Both < and C-+ work reasonably well.
@@ -489,19 +507,31 @@
 (use-package affe
   :after orderless
   :config
+  ;; TODO: This is probably out of date, see github documentation
   ;; Configure Orderless
   (setq affe-regexp-function #'orderless-pattern-compiler
         affe-highlight-function #'orderless--highlight
         ;; -a is important!
         affe-find-command  "fd -H -a --color=never -p")
+        ;; below had some strange behavior.
+        ;; affe-find-command "rg --color=never --hidden --files --sortr accessed")
   (consult-customize affe-grep affe-find :preview-key (kbd "M-."))
 
   (global-set-key (kbd "s-,")  #'(lambda () (interactive)
-                                   (affe-find "/home/ben/" nil)))
+                                   (affe-find "/home/ben/nxc" nil)))
+  (global-set-key (kbd "s-<")  #'(lambda () (interactive)
+                                   (consult-find "/home/ben/" nil)))
   (global-set-key (kbd "s-.")  #'(lambda () (interactive)
                                    (affe-find default-directory nil)))
   (global-set-key (kbd "s-/")  #'(lambda () (interactive)
                                    (affe-find "/" nil))))
+(use-package embark-consult
+  ;;:after (embark consult)
+  :demand t ; only necessary if you have the hook below
+  ;; if you want to have consult previews as you move around an
+  ;; auto-updating embark collect buffer
+  :hook
+  (embark-collect-mode . consult-preview-at-point-mode))
 
 (use-package embark
   :after evil
@@ -581,7 +611,12 @@ targets."
     (interactive "G")
     (call-process "xournalpp" nil 0 nil file))
 
-  (define-key embark-file-map (kbd "b") 'ben/db-link)
+  (define-key embark-file-map (kbd "b") 'ben/nxc-link)
+  (defun ben/nxc-link (file)
+    "Get public nextcloud link to FILE, and copy it to clipboard."
+    (interactive "G")
+    (shell-command (concat "python /home/ben/nxc/scripts/nextcloud_link.py \""
+                           file "\"")))
   (defun ben/db-link (file)
     "Get public dropbox link to FILE, and copy it to clipboard."
     (interactive "G")
@@ -591,13 +626,7 @@ targets."
   (define-key embark-file-map (kbd "g") 'ben/consult-rg-here)
 )
 
-(use-package embark-consult
-  :after (embark consult)
-  :demand t ; only necessary if you have the hook below
-  ;; if you want to have consult previews as you move around an
-  ;; auto-updating embark collect buffer
-  :hook
-  (embark-collect-mode . consult-preview-at-point-mode))
+
 
 (use-package which-key
   :config
@@ -633,7 +662,7 @@ targets."
   (setq org-cycle-emulate-tab nil)
   (setq org-M-RET-may-split-line nil)
   (setq org-src-tab-acts-natively t)
-  (setq org-directory "~/org")
+  (setq org-directory "~/nxc/org")
   (setq org-default-notes-file (concat org-directory "/gtd.org"))
   ;; Was this causing org-clocking-buffer exitting problems?
   ;; (setq org-clock-sound "/home/ben/org/reference/mixkit-achievement-bell-600.wav")
@@ -706,7 +735,7 @@ point. "
   
   (setq org-agenda-skip-scheduled-if-done t
         org-todo-keywords '((sequence "TODO(t)" "WAITING(w)" "|" "DONE(d)" "SOMEDAY(s)" "CANCELLED(c)"))
-        org-agenda-files '("~/org/inbox.org" "~/org/gtd.org"))
+        org-agenda-files '("~/nxc/org/inbox.org" "~/nxc/org/gtd.org"))
   ;; (setq org-capture-templates
   ;;       (doct `(("Binding" :keys "b"
   ;;                :type entry
@@ -747,6 +776,14 @@ point. "
                                          :raw-value (org-element-property :parent hl)))
                            (org-element-property :raw-value hl)))))
                 (add-to-list 'completion-at-point-functions #'ben-roster-completion-at-point))))
+
+  (defun ben-roster-paste-all ()
+    (interactive)
+    (unless (= 0 (current-column))
+      (newline))
+    (dolist (element roster)
+      (insert (format "*** %s\n" element)))
+    )
   
   
   ;; (defun ben-roster-completion-at-point ()
@@ -808,17 +845,39 @@ point. "
   (setq markdown-command "pandoc -t html5"))
 
 ;; TODO learn how to configure lsp-mode properly!
-(use-package lsp-mode
-  :commands (lsp lsp-deffered)
-  :hook (lsp-mode . lsp-enable-which-key-integration)
-  :config
-  (add-hook `python-mode-hook #'lsp))
+;; (use-package lsp-mode
+;;   :commands (lsp lsp-deffered)
+;;   :hook (lsp-mode . lsp-enable-which-key-integration)
+;;   :config
+;;   (add-hook `python-mode-hook #'lsp))
 
-(use-package lsp-pyright
-  :hook
-  (python-mode . (lambda ()
-                   (require 'lsp-pyright)
-                   (lsp-deferred))))
+;; (use-package lsp-pyright
+;;   :hook
+;;   (python-mode . (lambda ()
+;;                    (require 'lsp-pyright)
+;;                    (lsp-deferred))))
+
+(use-package dap-mode
+  :after lsp-mode
+  :config
+  (dap-auto-configure-mode)
+  (require 'dap-python))
+  ;(require 'dap-ui))  ;; not sure if this is being done in the right order?
+
+(use-package python-mode
+  :after dap-mode
+  :custom
+  (dap-python-debugger 'debugpy)
+  :config
+  ;; the default thing wasn't working because of a problem with cwd?
+  (dap-register-debug-template "Python :: Run file (buffer) (Ben)"
+                               (list :type "python"
+                                     :args ""
+                                     :cwd "/home/ben/nxc/room_scheduler"
+                                     :module nil
+                                     :program nil
+                                     :request "launch"
+                                     :name "Python :: Run file (buffer)(Ben)")))
 
 (use-package ledger-mode
   :mode ("\\.ledger$" . ledger-mode)
@@ -846,7 +905,11 @@ point. "
          ("example with date range"
           "%(binary) --sort date -p \"from 2021-06-09 to 2021-07-09\" -f %(ledger-file) reg expenses and @amazon")
          ("example with monthly"
-          "%(binary) --sort date -M -f %(ledger-file) reg expenses:bills")))
+          "%(binary) --sort date -M -f %(ledger-file) reg expenses:bills")
+         ("monthly totals for certain categories"
+          "%(binary) -f %(ledger-file) -M reg ^expenses:zzz ^expenses:yyy ^expenses:food:restaurants")
+         ("monthly totals for certain categories, displaying totals for each credit card"
+          "%(binary) -f %(ledger-file) -M -r reg ^expenses:zzz ^expenses:yyy ^expenses:food:restaurants")))
 
   (setq ledger-reconcile-buffer-line-format
         "%(date)s %-4(code)s %-40(payee)s %-30(account)s %11(amount)s\n")
@@ -989,6 +1052,7 @@ go to next field."
   (setq evil-ledger-sort-key "S")
   (add-hook 'ledger-mode-hook #'evil-ledger-mode))
 
+(use-package org-tree-slide)
 ;; This makes it so ledger-read-date defaults to 2021, for easier data entry:s
 ;; (defun decode-time-mock (orig &rest args)
 ;;   (if args
