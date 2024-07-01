@@ -2,25 +2,36 @@
 ;; -*- lexical-binding: t -*-
 
 ;; From straight.el README:
-(defvar bootstrap-version)
-(let ((bootstrap-file
-       (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
-      (bootstrap-version 5))
-  (unless (file-exists-p bootstrap-file)
-    (with-current-buffer
-        (url-retrieve-synchronously
-         "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
-         'silent 'inhibit-cookies)
-      (goto-char (point-max))
-      (eval-print-last-sexp)))
-  (load bootstrap-file nil 'nomessage))
+;; (defvar bootstrap-version)
+;; (let ((bootstrap-file
+;;        (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+;;       (bootstrap-version 5))
+;;   (unless (file-exists-p bootstrap-file)
+;;     (with-current-buffer
+;;         (url-retrieve-synchronously
+;;          "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+;;          'silent 'inhibit-cookies)
+;;       (goto-char (point-max))
+;;       (eval-print-last-sexp)))
+;;   (load bootstrap-file nil 'nomessage))
 
-;; Makes each use-package declaration also invoke straight to install package:
-(setq straight-use-package-by-default t)
+;; ;; Makes each use-package declaration also invoke straight to install package:
+;; (setq straight-use-package-by-default t)
 
-(straight-use-package 'use-package)
+;; (straight-use-package 'use-package)
 
+;; going back to package.el, not straight
+(require 'package)
+(add-to-list 'package-archives '("nongnu" . "https://elpa.nongnu.org/nongnu/"))
+(add-to-list 'package-archives '("melpa"  . "https://melpa.org/packages/"))
+(package-initialize)
 ;; (add-to-list 'custom-theme-load-path "~/.noivy-emacs.d/themes")
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package))
+(eval-and-compile
+  (setq use-package-always-ensure t
+        use-package-expand-minimally t))
 
 ;; Some functionality uses this to identify you, e.g. GPG configuration, email
 ;; clients, file templates and snippets.
@@ -122,7 +133,11 @@
   ;; (evil-define-key 'normal 'global (kbd "p") 'evil-paste-before)
   (setq evil-want-minibuffer t)
   (global-set-key (kbd "C-<tab>") 'evil-window-next)
-  (global-set-key (kbd "<C-iso-lefttab>") 'evil-window-prev))
+  (global-set-key (kbd "<C-iso-lefttab>") 'evil-window-prev)
+  ;;  (global-set-key (kbd "S-<insert>") 'evil-paste-after)
+  (evil-define-key '(insert) 'global (kbd "S-<insert>") 'evil-paste-before)
+  (evil-define-key '(visual normal) 'global (kbd "C-<insert>") 'evil-yank)
+  )
 
 (use-package evil-collection
   :after evil
@@ -317,16 +332,16 @@
                                 ("\\.xopp\\'" "xournalpp" (file)))))
 
 (use-package vertico
-  :straight (vertico
-             :files (:defaults "extensions/*")
-             :includes (vertico-buffer
-                        vertico-directory
-                        vertico-flat
-                        vertico-indexed
-                        vertico-mouse
-                        vertico-quick
-                        vertico-repeat
-                        vertico-reverse))
+  ;; :straight (vertico
+  ;;            :files (:defaults "extensions/*")
+  ;;            :includes (vertico-buffer
+  ;;                       vertico-directory
+  ;;                       vertico-flat
+  ;;                       vertico-indexed
+  ;;                       vertico-mouse
+  ;;                       vertico-quick
+  ;;                       vertico-repeat
+  ;;                       vertico-reverse))
   :init
   (vertico-mode)
   (setq enable-recursive-minibuffers t)
@@ -340,11 +355,11 @@
 ;; This isn't working:
 ;; Error (use-package): Cannot load vertico-repeat Disable showing Disable logging
 ;; Figure it out some time.
-(use-package vertico-repeat
-  :straight vertico
-  :after vertico
-  :config
-  (add-hook 'minibuffer-setup-hook #'vertico-repeat-save))
+;; (use-package vertico-repeat
+;;   ;; :straight vertico
+;;   :after vertico
+;;   :config
+;;   (add-hook 'minibuffer-setup-hook #'vertico-repeat-save))
 
 ;; selectrum minibuffer was unpredictably disappearing (zero height)
 ;; (use-package selectrum
@@ -375,9 +390,10 @@
   (setq read-file-name-completion-ignore-case t))
 
 ;; integrates with vertico/selectrum to make more recent selections first
-(use-package savehist
-  :init
-  (savehist-mode))
+;; causing error, so commented out: invalid read syntax: #, 44, 36 error
+;; (use-package savehist
+;;   :init
+;;   (savehist-mode))
 
 ;; Enable richer annotations using the Marginalia package
 (use-package marginalia
@@ -784,7 +800,30 @@ point. "
     (dolist (element roster)
       (insert (format "*** %s\n" element)))
     )
-  
+
+  ;; this currently does not work! mostly copied from gpt4
+(defun collect-and-insert-roster-entries (theweek theday)
+  (interactive "nEnter week number (1-15): \nnEnter day number (1-4): ")
+  (let ((result '()))  ; List to hold the names to insert
+    (save-excursion
+      ;; Go to the beginning of the buffer to search for Roster
+      (goto-char (point-min))
+      (when (re-search-forward "^\\* Roster" nil t)
+        (while (re-search-forward "^\\*\\* \\(.*\\)$" nil t)  ; Match subheadings under Roster
+          (let ((name (match-string 1))  ; Capture the subheading name
+                (entry-start (point)))
+            ;; Move to the line with week entries and capture it
+            (forward-line 1)
+            (let ((line (buffer-substring-no-properties (line-beginning-position) (line-end-position))))
+              ;; Calculate position of the desired entry in the line
+              (let ((pos (+ (* (1- theweek) 5) theday)))
+                ;; Check if the character at pos is not '.' or '-'
+                (when (and (>= pos (length line))
+                           (not (member (aref line pos) '(?. ?-))))
+                  (push name result))))))))  ; Add name to results if condition is met
+      ;; Inserting the collected names at the current point
+      (dolist (name (reverse result))  ; Reverse to maintain original order
+        (insert name "\n"))))
   
   ;; (defun ben-roster-completion-at-point ()
   ;;   (interactive)
@@ -811,12 +850,13 @@ point. "
 (use-package ess
   :mode ("\\.r\\'" . ess-r-mode))
 
-(use-package latex
-  :straight auctex
+(use-package auctex
+  ;; :straight auctex
   :config
   (setq TeX-auto-save t)
   (setq TeX-parse-self t)
   (add-hook 'LaTeX-mode-hook (lambda ()
+                               (adaptive-wrap-prefix-mode 1)
                                (yas-minor-mode 1)
                                (flyspell-mode)
 			       (TeX-source-correlate-mode)
@@ -826,7 +866,12 @@ point. "
 			       (add-to-list 'TeX-view-program-selection
                                             '(output-pdf "Zathura"))
 			       (setq TeX-electric-sub-and-superscript nil)
-			       (setq +latex-indent-level-item-continuation 2))))
+			       (setq +latex-indent-level-item-continuation 2)
+                               (setq LaTeX-item-indent 0)
+                               (add-to-list 'latex-noindent-environments "questions")
+                               (add-to-list 'LaTeX-indent-environment-list '("questions" current-indentation)))))
+
+(use-package adaptive-wrap)
 
 (use-package evil-tex
   :config
@@ -1053,13 +1098,15 @@ go to next field."
   (add-hook 'ledger-mode-hook #'evil-ledger-mode))
 
 (use-package org-tree-slide)
-;; This makes it so ledger-read-date defaults to 2021, for easier data entry:s
-;; (defun decode-time-mock (orig &rest args)
-;;   (if args
-;;   (apply orig args)
-;; '(0 0 0 1 1 2021 1 nil -18000)))
+;; This makes it so ledger-read-date defaults to 2023, for easier data entry:s
+(defun decode-time-mock (orig &rest args)
+   (if args
+   (apply orig args)
+ '(0 0 0 1 1 2023 1 nil -18000)))
 
-;; (defun decode-time-mock (orig &rest args)
-;; '(0 0 0 1 1 2021 1 nil -18000))
-;; (advice-add 'decode-time :around 'decode-time-mock)
-;; (advice-remove 'decode-time 'decode-time-mock)
+(defun decode-time-mock (orig &rest args)
+'(0 0 0 1 1 2023 1 nil -18000))
+ (advice-add 'decode-time :around 'decode-time-mock)
+ (advice-remove 'decode-time 'decode-time-mock)
+
+(use-package lua-mode)
