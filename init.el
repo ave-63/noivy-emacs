@@ -39,12 +39,14 @@
       user-mail-address "bensmithmath@gmail.com")
 
 (use-package no-littering
+  :ensure
   :config
   (recentf-mode) ;; needed for consult; below keeps it clean
   (add-to-list 'recentf-exclude no-littering-var-directory)
   (add-to-list 'recentf-exclude no-littering-etc-directory))
 
 (use-package rainbow-delimiters
+  :ensure
   :config
   (add-hook 'prog-mode-hook #'rainbow-delimiters-mode))
 
