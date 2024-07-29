@@ -163,8 +163,8 @@
 
 (use-package emacs
   :config 
-  (set-frame-font "DejaVu Sans Mono 11" nil t)
-  ;; (set-frame-font "Iosevka 12" nil t)
+  ;(set-frame-font "DejaVu Sans Mono 11" nil t)
+  (set-frame-font "Iosevka 11" nil t)
   (setq-default indent-tabs-mode nil)
   (menu-bar-mode -1)
   (tool-bar-mode -1)
@@ -222,7 +222,7 @@
           ((region-active-p)
            (deactivate-mark))
           ((> (minibuffer-depth) 0)
-           (abort-recursive-edit))
+           (abort-recursive-edit)) ;; this and exit-recursive-edit are causing a problem
           (current-prefix-arg
            nil)
           ((> (recursion-depth) 0)
@@ -347,12 +347,13 @@
   :init
   (vertico-mode)
   (setq enable-recursive-minibuffers t)
+  (minibuffer-depth-indicate-mode 1)
   (setq vertico-resize 'grow-only)
   (define-key minibuffer-local-map (kbd "C-<tab>") 'other-window)
   ;; Add vertico extensions to load path and load vertico-repeat:
   ;; (let ((default-directory "/home/ben/.noivy-emacs.d/straight/build/vertico"))
   ;;   (normal-top-level-add-subdirs-to-load-path))
-  (global-set-key (kbd "s-r") 'vertico-repeat))
+  ;; (global-set-key (kbd "s-r") 'vertico-repeat))
 
 ;; This isn't working:
 ;; Error (use-package): Cannot load vertico-repeat Disable showing Disable logging
@@ -530,7 +531,8 @@
   (setq affe-regexp-function #'orderless-pattern-compiler
         affe-highlight-function #'orderless--highlight
         ;; -a is important!
-        affe-find-command  "fd -H -a --color=never -p")
+        ;;affe-find-command  "fd -H -a --color=never -p")
+        affe-find-command "/home/ben/nxc/scripts/for_affe.sh")
         ;; below had some strange behavior.
         ;; affe-find-command "rg --color=never --hidden --files --sortr accessed")
   (consult-customize affe-grep affe-find :preview-key (kbd "M-."))
@@ -538,7 +540,7 @@
   (global-set-key (kbd "s-,")  #'(lambda () (interactive)
                                    (affe-find "/home/ben/nxc" nil)))
   (global-set-key (kbd "s-<")  #'(lambda () (interactive)
-                                   (consult-find "/home/ben/" nil)))
+                                   (affe-find "/home/ben/" nil)))
   (global-set-key (kbd "s-.")  #'(lambda () (interactive)
                                    (affe-find default-directory nil)))
   (global-set-key (kbd "s-/")  #'(lambda () (interactive)
@@ -582,40 +584,60 @@ current target followed by an ellipsis if there are further
 targets."
     (lambda (&optional keymap targets prefix)
       (if (null keymap)
-          (kill-buffer which-key--buffer)
+          (which-key--hide-popup-ignore-command)
         (which-key--show-keymap
-         (if (eq (caar targets) 'embark-become)
+         (if (eq (plist-get (car targets) :type) 'embark-become)
              "Become"
            (format "Act on %s '%s'%s"
-                   (caar targets)
-                   (embark--truncate-target (cdar targets))
-                   (if (cdr targets) "…" "")))
-         (if prefix (lookup-key keymap prefix) keymap)
-         nil nil t))))
+                   (plist-get (car targets) :type)
+                   (embark--truncate-target (plist-get (car targets) :target))
+                   (if (cdr targets) "â¦" "")))
+         (if prefix
+             (pcase (lookup-key keymap prefix 'accept-default)
+               ((and (pred keymapp) km) km)
+               (_ (key-binding prefix 'accept-default)))
+           keymap)
+         nil nil t (lambda (binding)
+                     (not (string-suffix-p "-argument" (cdr binding))))))))
 
-  (setq embark-indicator #'embark-which-key-indicator)
+  (setq embark-indicators
+        '(embark-which-key-indicator
+          embark-highlight-indicator
+          embark-isearch-highlight-indicator))
 
+  (defun embark-hide-which-key-indicator (fn &rest args)
+    "Hide the which-key indicator immediately when using the completing-read prompter."
+    (which-key--hide-popup-ignore-command)
+    (let ((embark-indicators
+           (remq #'embark-which-key-indicator embark-indicators)))
+      (apply fn args)))
+
+  (advice-add #'embark-completing-read-prompter
+              :around #'embark-hide-which-key-indicator)
+  
   (defun embark-act-noquit ()
     "Run action but don't quit the minibuffer afterwards."
     (interactive)
     (let ((embark-quit-after-action nil))
       (embark-act)))
 
-  (define-key embark-file-map (kbd "t") 'ben/vterm-here)
-  (defun ben/vterm-here (file)
-    "Open vterm in this directory"
-    (interactive "G")
-    (let ((default-directory (if (f-directory-p file)
-                                 file
-                               (file-name-directory file))))
-      (multi-vterm)))
+  ;; (define-key embark-file-map (kbd "t") 'ben/vterm-here)
+  ;; (defun ben/vterm-here (file)
+  ;;   "Open vterm in this directory"
+  ;;   (interactive "G")
+  ;;   (let ((default-directory (if (f-directory-p file)
+  ;;                                file
+  ;;                              (file-name-directory file))))
+  ;;     (multi-vterm)))
   
-  (define-key embark-file-map (kbd "D") 'ben/dired-here)
-  (defun ben/dired-here (file)
-    "Open dired in this directory"
-    (if (f-directory-p file)
-        (dired file)
-      (dired (file-name-directory file))))
+  ;; (define-key embark-file-map (kbd "D") 'ben/dired-here)
+    ;; j, for dired-jump, does the same dang thing!
+  ;; (defun ben/dired-here (file)
+  ;;   "Open dired in this directory"
+  ;;   (interactive "G")
+  ;;   (if (file-directory-p file)
+  ;;       (dired file)
+  ;;     (dired (file-name-directory file)))) 
 
   (define-key embark-file-map (kbd "x") 'ben/xdg-open)
   (defun ben/xdg-open (file)
