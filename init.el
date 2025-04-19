@@ -59,25 +59,6 @@
   (buffer-face-set 'default))
 (add-hook 'buffer-list-update-hook 'highlight-selected-window)
 
-;; (use-package gruvbox-theme
-;;   :config
-;;   (load-theme 'gruvbox-dark-medium t))
-
-;; (use-package modus-themes
-;;   :init
-;;   (setq modus-themes-italic-constructs t
-;;         modus-themes-bold-constructs t
-;;         modus-themes-syntax '(yellow-comments
-;;                               alt-syntax
-;;                               green-strings)
-;;         modus-themes-fringes 'subtle
-;;         modus-themes-paren-match '(intense bold)
-;;         modus-themes-region '(accented)
-;;         modus-themes-mode-line '(moody accented))
-;;   :config
-;;   (modus-themes-load-vivendi)
-;;   (column-number-mode))
-
 (use-package ef-themes
   :config
   (load-theme 'ef-autumn :no-confirm)
@@ -121,50 +102,15 @@
 
 (use-package magit)
 
-(use-package evil
-  :init
-  (setq evil-search-module "evil-search")
-  (setq evil-cross-lines t)
-  (setq evil-respect-visual-line-mode t)
-  (setq evil-want-integration t) ;; recommended for evil-collection
-  (setq evil-want-keybinding nil) ;; required for evil-collection
-  (setq evil-want-fine-undo t)
-  (setq evil-undo-system 'undo-fu)
-  :config
-  (evil-mode 1)
-  ;; (evil-define-key 'normal 'global (kbd "p") 'evil-paste-before)
-  (setq evil-want-minibuffer t)
-  (global-set-key (kbd "C-<tab>") 'evil-window-next)
-  (global-set-key (kbd "<C-iso-lefttab>") 'evil-window-prev)
-  ;;  (global-set-key (kbd "S-<insert>") 'evil-paste-after)
-  (evil-define-key '(insert) 'global (kbd "S-<insert>") 'evil-paste-before)
-  (evil-define-key '(visual normal) 'global (kbd "C-<insert>") 'evil-yank)
-  )
-
-(use-package evil-collection
-  :after evil
-  :config
-  (evil-collection-init))
-
-(use-package evil-surround
-  :config
-  (global-evil-surround-mode 1)
-  (setq evil-surround-pairs-alist (delete  '(40 . ("( " . " )")) evil-surround-pairs-alist))
-  (setq evil-surround-pairs-alist (delete  '(91 . ("[ " . " ]")) evil-surround-pairs-alist))
-  (setq evil-surround-pairs-alist (delete  '(123 . ("{ " . " }")) evil-surround-pairs-alist))
-  (push  '(40 . ("(" . ")")) evil-surround-pairs-alist)
-  (push  '(91 . ("[" . "]")) evil-surround-pairs-alist)
-  (push  '(123 . ("{" . "}")) evil-surround-pairs-alist))
-
 (use-package undo-fu
   :config
-  (define-key evil-normal-state-map (kbd "C-/") 'undo-fu-only-undo)
-  (define-key evil-normal-state-map (kbd "C-?") 'undo-fu-only-redo))
+  (global-set-key (kbd "C-z") 'undo-fu-only-undo)
+  (global-set-key (kbd "C-S-z") 'undo-fu-only-redo))
 
 (use-package emacs
   :config 
-  ;(set-frame-font "DejaVu Sans Mono 11" nil t)
-  (set-frame-font "Iosevka 11" nil t)
+  (set-frame-font "DejaVu Sans Mono 11" nil t)
+  ;(set-frame-font "Iosevka 11" nil t)
   (setq-default indent-tabs-mode nil)
   (menu-bar-mode -1)
   (tool-bar-mode -1)
@@ -192,8 +138,9 @@
   ;; this puts backup files in user-emacs-directory/backups/
   (setq backup-directory-alist
         `(("." . ,(expand-file-name "backups/" user-emacs-directory))))
-  (global-set-key (kbd "s-s") 'save-buffer)
-  (global-set-key (kbd "C-s-f") 'find-file-other-window)
+  (global-set-key (kbd "C-s") 'save-buffer)
+  (global-set-key (kbd "s-s") 'isearch-forward)
+  (global-set-key (kbd "s-r") 'isearch-backward)
   (global-set-key (kbd "s-e") 'eval-last-sexp)
   (global-set-key (kbd "s-d") 'kill-buffer)
   (global-set-key (kbd "s-0") 'delete-window)
@@ -201,20 +148,27 @@
   (global-set-key (kbd "s-2") 'split-window-below)
   (global-set-key (kbd "s-3") 'split-window-right)
   (global-set-key (kbd "s-4") 'ctl-x-4-prefix)
-  (global-set-key (kbd "C-SPC") 'completion-at-point)
+  (global-set-key (kbd "C-t") 'completion-at-point)
+  (global-set-key (kbd "C-v") 'scroll-down-line)
+  (global-set-key (kbd "M-v") 'scroll-up-line)
+
   (setq dired-listing-switches "--group-directories-first -alh")
   (setq-default custom-file null-device)
   ;; (setq completion-cycle-threshold 3) ;; maybe?
   (setq tab-always-indent 'complete)
+  (setq sentence-end-double-space nil)
 
-  ;; (global-set-key (kbd "C-S-g") 'ben/quit-minibuffer)
-  ;; (defun ben/quit-minibuffer ()
-  ;;   "Quit the minibuffer from anywhere."
-  ;;   (interactive)
-  ;;   (with-selected-window (active-minibuffer-window)
-  ;;     (execute-kbd-macro (kbd "C-g"))))
-  ;; I like this one more:
+  (global-set-key (kbd "C-<tab>") 'next-window-any-frame) ;; any-frame part might be a problem
+  (global-set-key (kbd "<C-iso-lefttab>") 'previous-window-any-frame)
+  (global-set-key (kbd "S-<insert>") 'yank)
+  (global-set-key (kbd "C-S-<insert>") `consult-yank-pop)
+  (global-set-key (kbd "C-<insert>") 'kill-ring-save)
+;;   (evil-define-key '(insert) 'global (kbd "S-<insert>") 'evil-paste-before)
+;;   (evil-define-key '(visual normal) 'global (kbd "C-<insert>") 'evil-yank)
   (global-set-key (kbd "C-g") 'ben/keyboard-escape-quit)
+  (global-set-key (kbd "C-<deletechar>") 'kill-word)
+  (global-set-key (kbd "C-<backspace>") 'backward-kill-word)
+  
   (defun ben/keyboard-escape-quit ()
     "Just like `keyboard-escape-quit` but doesn't close other windows."
     (interactive)
@@ -241,56 +195,58 @@
     (if (window-minibuffer-p (selected-window))
         (select-window (minibuffer-selected-window))
       (select-window (active-minibuffer-window))))
+)
 
-  (evil-define-key 'normal 'global (kbd "n") 'minad/down-from-outside)
-  (defun minad/down-from-outside ()
-    (interactive)
-    (with-selected-window (active-minibuffer-window)
-      (execute-kbd-macro [down])))
+(use-package crux
+  :ensure t
+  :config
+  (global-set-key (kbd "M-<delete>") 'crux-smart-kill-line) ;; do it twice to kill whole line!
+  (global-set-key (kbd "M-<backspace>") 'crux-kill-line-backwards)
+  ;; I press these a lot by accident...
+  ;;(global-set-key (kbd "S-<delete>") 'kill-sentence)
+  ;;(global-set-key (kbd "S-<backspace>") 'backward-kill-sentence)
+  (global-set-key (kbd "C-o") 'crux-smart-open-line)
+  (global-set-key (kbd "M-o") 'crux-smart-open-line-above)
+  (global-set-key (kbd "s-o") 'crux-duplicate-current-line-or-region)
+  (global-set-key (kbd "C-j") 'crux-top-join-line)
 
-  (evil-define-key 'normal 'global (kbd "N") 'minad/up-from-outside)
-  (defun minad/up-from-outside ()
-    (interactive)
-    (with-selected-window (active-minibuffer-window)
-      (execute-kbd-macro [up])))
+  (global-set-key (kbd "s-5") 'crux-transpose-windows)
+  (global-set-key (kbd "C-c r") 'crux-rename-file-and-buffer)
+  (global-set-key (kbd "C-c n") 'crux-cleanup-buffer-or-region)
   )
 
+(use-package drag-stuff
+  :ensure t
+  :config
+  ;; M-left, up, down, right to drag
+  (drag-stuff-global-mode 1)
+  (drag-stuff-define-keys))
+
+  ;; ;; Thinking of avoiding this in favor of embark-export/collect
+  ;; (evil-define-key 'normal 'global (kbd "n") 'minad/down-from-outside)
+  ;; (defun minad/down-from-outside ()
+  ;;   (interactive)
+  ;;   (with-selected-window (active-minibuffer-window)
+  ;;     (execute-kbd-macro [down])))
+
+  ;; (evil-define-key 'normal 'global (kbd "N") 'minad/up-from-outside)
+  ;; (defun minad/up-from-outside ()
+  ;;   (interactive)
+  ;;   (with-selected-window (active-minibuffer-window)
+  ;;     (execute-kbd-macro [up])))
+
+
 (use-package dired-du)
-
-;(use-package vterm
-;  :after evil
-;  :config
-;  (evil-define-key 'normal vterm-mode-map (kbd "p") 'vterm-yank)
-;  (evil-define-key 'normal vterm-mode-map (kbd "C-p") 'vterm-yank-pop))
-
-;(use-package multi-vterm)
-;; :config
-;; Not needed, because it's covered by evil-collection
-;; (add-hook 'vterm-mode-hook
-;; 	    (lambda ()
-;; 	      (setq-local evil-insert-state-cursor 'box)
-;; 	      (evil-insert-state)))
-;; (define-key vterm-mode-map [return]                      #'vterm-send-return)
-
-;; (evil-define-key 'normal vterm-mode-map (kbd ",c")       #'multi-vterm)
-;; (evil-define-key 'normal vterm-mode-map (kbd ",n")       #'multi-vterm-next)
-;; (evil-define-key 'normal vterm-mode-map (kbd ",p")       #'multi-vterm-prev)
-;; (evil-define-key 'normal vterm-mode-map (kbd "i")        #'evil-insert-resume)
-;; (evil-define-key 'normal vterm-mode-map (kbd "o")        #'evil-insert-resume)
-;; (evil-define-key 'normal vterm-mode-map (kbd "<return>") #'evil-insert-resume))
 
 (use-package avy
   :config
   (setq avy-all-windows t)
-  (evil-global-set-key 'normal (kbd "u") 'avy-goto-char-timer) ;reserved for avy
-  (evil-global-set-key 'motion (kbd "u") 'avy-goto-char-timer)
-  (evil-global-set-key 'visual (kbd "u") 'avy-goto-char-timer)
-  (evil-global-set-key 'operator (kbd "u") 'avy-goto-char-timer))
+  (global-set-key (kbd "C-y") 'avy-goto-char-timer))
 
 (use-package expand-region
   :config
-  (global-set-key (kbd "M-e") 'er/expand-region) 
-  (global-set-key (kbd "C-M-e") 'er/contract-region)) 
+  (global-set-key (kbd "C-r") 'er/expand-region) 
+  (global-set-key (kbd "C-M-r") 'er/contract-region)) 
 
 (use-package corfu
   ;; Optional customizations
@@ -322,6 +278,12 @@
                                         ;  :init
                                         ;  (corfu-global-mode)) ; This seems to've broken selectrum; it wouln't resize minibuffer
 
+(use-package calc
+  :config
+  (define-key calc-mode-map (kbd "?") 'casual-calc-tmenu)
+  (define-key calc-mode-map (kbd "C-z") 'calc-undo)
+  (define-key calc-mode-map (kbd "C-S-z") 'calc-redo))
+
 (use-package openwith
   :config
   (openwith-mode t)
@@ -334,46 +296,14 @@
                                 ("\\.xopp\\'" "xournalpp" (file)))))
 
 (use-package vertico
-  ;; :straight (vertico
-  ;;            :files (:defaults "extensions/*")
-  ;;            :includes (vertico-buffer
-  ;;                       vertico-directory
-  ;;                       vertico-flat
-  ;;                       vertico-indexed
-  ;;                       vertico-mouse
-  ;;                       vertico-quick
-  ;;                       vertico-repeat
-  ;;                       vertico-reverse))
   :init
   (vertico-mode)
   (setq enable-recursive-minibuffers t)
   (minibuffer-depth-indicate-mode 1)
   (setq vertico-resize 'grow-only)
   (define-key minibuffer-local-map (kbd "C-<tab>") 'other-window)
-  ;; Add vertico extensions to load path and load vertico-repeat:
-  ;; (let ((default-directory "/home/ben/.noivy-emacs.d/straight/build/vertico"))
-  ;;   (normal-top-level-add-subdirs-to-load-path))
-  ;; (global-set-key (kbd "s-r") 'vertico-repeat))
+  (define-key minibuffer-local-map (kbd "C-<return>") 'vertico-exit-input))
 
-;; This isn't working:
-;; Error (use-package): Cannot load vertico-repeat Disable showing Disable logging
-;; Figure it out some time.
-;; (use-package vertico-repeat
-;;   ;; :straight vertico
-;;   :after vertico
-;;   :config
-;;   (add-hook 'minibuffer-setup-hook #'vertico-repeat-save))
-
-;; selectrum minibuffer was unpredictably disappearing (zero height)
-;; (use-package selectrum
-;;   :custom
-;;   (selectrum-fix-vertical-window-height t)
-;;   :init
-;;   (selectrum-mode +1)
-;;   :config
-;;   (global-set-key (kbd "s-r") 'selectrum-repeat)
-;;   (setq enable-recursive-minibuffers t)
-;;   (define-key minibuffer-local-map (kbd "C-<tab>") 'other-window))
 
 (use-package orderless
   :init
@@ -383,10 +313,6 @@
   ;; You may prefer to use `initials' instead of `partial-completion'.
   (setq completion-category-overrides '((file (styles . (partial-completion)))))
   :config
-  ;; performance enhancement; highlighting only the visible candidates.
-  ;; (setq orderless-skip-highlighting (lambda () selectrum-is-active))
-  ;; (setq selectrum-highlight-candidates-function #'orderless-highlight-matches)
-  ;; (setq selectrum-refine-candidates-function #'orderless-filter)
   (setq orderless-smart-case t)
   (setq completion-ignore-case t)
   (setq read-buffer-completion-ignore-case t)
@@ -417,7 +343,7 @@
          ;;("C-c b" . consult-bookmark)
          ;;("C-c k" . consult-kmacro)
          ;; C-x bindings (ctl-x-map)
-         ;;("C-x M-:" . consult-complex-command) make this s-r?    ;; orig. repeat-complex-command
+         ("s-c" . consult-complex-command)     ;; orig. repeat-complex-command
          ("s-b" . consult-buffer)                ;; orig. switch-to-buffer
          ("C-s-b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
          ;; ("C-x 5 b" . consult-buffer-other-frame)  ;; orig. switch-to-buffer-other-frame
@@ -444,17 +370,20 @@
          ("M-s g" . consult-grep)
          ("M-s G" . consult-git-grep)
          ("M-s r" . consult-ripgrep)
-         ("M-s l" . consult-line)
          ("M-s m" . consult-multi-occur)
          ("M-s k" . consult-keep-lines)
          ("M-s u" . consult-focus-lines)
          ;; Isearch integration
-         ("M-s e" . consult-isearch)
+         ("M-s e" . consult-isearch-history)
          :map isearch-mode-map
-         ("M-e" . consult-isearch)                 ;; orig. isearch-edit-string
-         ("M-s e" . consult-isearch)               ;; orig. isearch-edit-string
-         ("M-s l" . consult-line))                 ;; required by consult-line to detect isearch
-
+         ("M-e" . consult-isearch-history)         ;; orig. isearch-edit-string
+         ("M-s e" . consult-isearch-history)       ;; orig. isearch-edit-string
+         ("M-s l" . consult-line)                  ;; needed by consult-line to detect isearch
+         ("M-s L" . consult-line-multi)  
+         ;; Minibuffer history
+         :map minibuffer-local-map
+         ("M-s" . consult-history)                 ;; orig. next-matching-history-element
+         ("M-r" . consult-history))                ;; orig. previous-matching-history-element
   ;; The :init configuration is always executed (Not lazy)
   :init
 
@@ -475,7 +404,7 @@
   ;; Configure other variables and modes in the :config section,
   ;; after lazily loading the package.
   :config
-  (evil-define-key 'normal 'global (kbd "/") 'consult-line)
+  (global-set-key (kbd "C-/") 'consult-line)
 
   (defun ben/consult-rg-here (file)
     "consult-ripgrep in this directory."
@@ -526,9 +455,8 @@
 (use-package affe
   :after orderless
   :config
-  ;; TODO: This is probably out of date, see github documentation
-  ;; Configure Orderless
-  (setq affe-regexp-function #'orderless-pattern-compiler
+  (setq affe-count 50
+        affe-regexp-function #'orderless-pattern-compiler
         affe-highlight-function #'orderless--highlight
         ;; -a is important!
         ;;affe-find-command  "fd -H -a --color=never -p")
@@ -554,11 +482,7 @@
   (embark-collect-mode . consult-preview-at-point-mode))
 
 (use-package embark
-  :after evil
   :init
-  (evil-define-key '(motion normal insert emacs) 'global
-    (kbd "C-d") 'embark-act
-    (kbd "C-S-d") 'embark-act-noquit)
   (global-set-key (kbd "C-d") 'embark-act)
   (global-set-key (kbd "C-S-d") 'embark-act-noquit)
   (global-set-key (kbd "C-h B") 'embark-bindings)
@@ -576,6 +500,7 @@
                '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
                  nil
                  (window-parameters (mode-line-format . none))))
+  (setq prefix-help-command #'embark-prefix-help-command)
   ;; make which-key show action list
   (defun embark-which-key-indicator ()
     "An embark indicator that displays keymaps using which-key.
@@ -649,14 +574,14 @@ targets."
   (defun ben/xournal (file)
     "Open FILE with xournal. FILE must be absolute path."
     (interactive "G")
-    (call-process "xournalpp" nil 0 nil file))
+    (call-process "xournalpp" nil 0 nil (replace-regexp-in-string "^~" "/home/ben" file)))
 
   (define-key embark-file-map (kbd "b") 'ben/nxc-link)
   (defun ben/nxc-link (file)
     "Get public nextcloud link to FILE, and copy it to clipboard."
     (interactive "G")
     (shell-command (concat "python /home/ben/nxc/scripts/nextcloud_link.py \""
-                           file "\"")))
+                           (replace-regexp-in-string "^~" "/home/ben" file) "\"")))
   (defun ben/db-link (file)
     "Get public dropbox link to FILE, and copy it to clipboard."
     (interactive "G")
@@ -666,7 +591,35 @@ targets."
   (define-key embark-file-map (kbd "g") 'ben/consult-rg-here)
 )
 
+;;Beginning of Prot's popup client config
+;; This is much simplified because with the original more complicated code,
+;; affe-find also opened in the main emacs window.
+;; Then sometimes, such as when using embark-act, quitting the minibuffer
+;; quit BOTH windows.
 
+(defun ben-affe-nxc ()
+  (interactive)
+  (affe-find "/home/ben/nxc" nil))
+
+(defun ben-affe-make-frame ()
+    "Make a new frame for affe-find"
+  (interactive)
+  (let ((frame (make-frame)))
+    (select-frame frame)
+    (switch-to-buffer " ben-affe-make-frame-hidden-buffer")
+  (condition-case nil
+      (call-interactively 'ben-affe-nxc)
+    ((quit error user-error)
+      (delete-frame frame)))
+    (delete-frame frame)))
+
+(use-package server
+  :ensure t
+  :defer 1
+  :config
+  (unless (server-running-p)
+    (server-start)))
+;; end of prot's popup client config
 
 (use-package which-key
   :config
@@ -685,18 +638,21 @@ targets."
   (global-set-key (kbd "C-c c") 'org-capture)
   (setq org-goto-interface 'outline-path-completion)
   (setq org-outline-path-complete-in-steps nil)
-  (evil-define-key '(normal insert) org-mode-map (kbd "s-j") 'org-next-visible-heading)
-  (evil-define-key '(normal insert) org-mode-map (kbd "s-k") 'org-previous-visible-heading)
-  (evil-define-key '(normal insert) org-mode-map (kbd "s-h") 'outline-up-heading)
-  (evil-define-key '(normal insert) org-mode-map (kbd "s-m") 'consult-org-heading)
-  (evil-define-key '(normal insert) org-mode-map (kbd "M-j") 'org-metadown)
-  (evil-define-key '(normal insert) org-mode-map (kbd "M-k") 'org-metaup)
-  (evil-define-key '(normal insert) org-mode-map (kbd "M-l") 'org-metaright)
-  (evil-define-key '(normal insert) org-mode-map (kbd "M-h") 'org-metaleft)
-  (evil-define-key '(normal insert) org-mode-map (kbd "<s-tab>") 'org-cycle)
-  (evil-define-key '(normal insert) org-mode-map (kbd "<C-tab>") nil)
-  (evil-define-key '(normal insert) org-mode-map (kbd "<M-return>") 'sbr-org-insert-dwim)
-  (evil-define-key '(normal insert) org-mode-map (kbd "C-SPC") 'completion-at-point)
+  ;; (evil-define-key '(normal insert) org-mode-map (kbd "s-j") 'org-next-visible-heading)
+  ;; (evil-define-key '(normal insert) org-mode-map (kbd "s-k") 'org-previous-visible-heading)
+  ;; (evil-define-key '(normal insert) org-mode-map (kbd "s-h") 'outline-up-heading)
+  ;; (evil-define-key '(normal insert) org-mode-map (kbd "s-m") 'consult-org-heading)
+  ;; (evil-define-key '(normal insert) org-mode-map (kbd "M-j") 'org-metadown)
+  ;; (evil-define-key '(normal insert) org-mode-map (kbd "M-k") 'org-metaup)
+  ;; (evil-define-key '(normal insert) org-mode-map (kbd "M-l") 'org-metaright)
+  ;; (evil-define-key '(normal insert) org-mode-map (kbd "M-h") 'org-metaleft)
+  ;; (evil-define-key '(normal insert) org-mode-map (kbd "<s-tab>") 'org-cycle)
+  ;; (evil-define-key '(normal insert) org-mode-map (kbd "<C-tab>") nil)
+  ;; (evil-define-key '(normal insert) org-mode-map (kbd "<M-return>") 'sbr-org-insert-dwim)
+  ;; (evil-define-key '(normal insert) org-mode-map (kbd "C-SPC") 'completion-at-point)
+  
+  (define-key org-mode-map (kbd "M-<left>") 'org-metaleft)
+  (define-key org-mode-map (kbd "M-<right>") 'org-metaright)
   (setq org-startup-indented t)
   (setq org-startup-truncated nil)
   (setq org-cycle-emulate-tab nil)
@@ -707,7 +663,7 @@ targets."
   ;; Was this causing org-clocking-buffer exitting problems?
   ;; (setq org-clock-sound "/home/ben/org/reference/mixkit-achievement-bell-600.wav")
   (add-to-list 'org-show-context-detail '(occur-tree . ancestors))
-  (evil-define-key '(normal insert) org-mode-map (kbd "s-t") 'bensult-roster)
+  (define-key org-mode-map (kbd "s-t") 'bensult-roster)
   
   (defun bensult-roster ()
     "Use consult to choose name from roster, create an org sparse
@@ -806,6 +762,8 @@ point. "
   ;; Reads the roster; headings are students name under heading Roster
   (add-hook 'org-mode-hook
             (lambda ()
+              (drag-stuff-mode 0) ;; interfered with org M-directions. But maybe this is better?
+                                  ;; I couldn't figure out how to over-write some drag-stuff bindings.
               ;; TODO: change stats.org to class.org or something
               (when (string-suffix-p "stats.org" (buffer-file-name))
                 (set (make-local-variable 'roster)  
@@ -879,33 +837,71 @@ point. "
   :config
   (setq TeX-auto-save t)
   (setq TeX-parse-self t)
+  ;; attempts to fix black font problem in preview
+;;  (setq preview-dvipng-image-has-transparent-background t)
+;;  (setq preview-transparent-color '(default :background))
   (add-hook 'LaTeX-mode-hook (lambda ()
+                               (define-key LaTeX-mode-map (kbd "C-j") 'crux-top-join-line)
+                               ;; for some reason expand-region doesn't do this automatically:
+                               (er/add-latex-mode-expansions)
+                               (turn-on-cdlatex)
                                (adaptive-wrap-prefix-mode 1)
-                               (yas-minor-mode 1)
+                               ;; (yas-minor-mode 1)
                                (flyspell-mode)
+                               (define-key flyspell-mode-map (kbd "C-;") 'avy-goto-char-timer)
 			       (TeX-source-correlate-mode)
-			       (setq-default TeX-engine 'xetex
+			       (setq-default TeX-engine 'luatex
 					     TeX-PDF-mode t)
 			       (setq TeX-source-correlate-start-server t)
 			       (add-to-list 'TeX-view-program-selection
                                             '(output-pdf "Zathura"))
 			       (setq TeX-electric-sub-and-superscript nil)
-			       (setq +latex-indent-level-item-continuation 2)
+			       (setq +latex-indent-level-item-continuation 0)
                                (setq LaTeX-item-indent 0)
+                               (setq LaTeX-indent-level 0)
+                               (setq LaTeX-left-right-indent-level 0)
                                (add-to-list 'latex-noindent-environments "questions")
-                               (add-to-list 'LaTeX-indent-environment-list '("questions" current-indentation)))))
+                               (add-to-list 'LaTeX-indent-environment-list
+                                            '("questions" current-indentation))
+                               (setq preview-scale-function
+                                     (lambda () (* 1.25
+                                                   (funcall (preview-scale-from-face))))))))
+
+(use-package cdlatex
+  :ensure t
+  :config
+  (setq cdlatex-insert-auto-labels-in-env-templates nil)
+  (setq cdlatex-paired-parens "") ;; disables auto insertion of pairs {} [] $$
+  (setq cdlatex-math-symbol-alist '((?R ("\\R"))))
+  (setq cdlatex-math-modify-alist '((?v "\\vec" nil t t nil)))
+  ;; remove r and l so, eg, we're and you'll can be typed
+  (setq cdlatex-math-modify-alist-default (assq-delete-all 108 cdlatex-math-modify-alist-default))
+  (setq cdlatex-math-modify-alist-default (assq-delete-all 114 cdlatex-math-modify-alist-default))
+  (setq cdlatex-env-alist '(("enumalph" "\\begin{enumerate}[label=(\\alph*)]
+\\itemAUTOLABEL ?
+\\end{enumerate}" "\\itemAUTOLABEL ?")
+                            ("question" "\\begin{q}{?}
+?
+\\end{q}" nil)))
+  (setq cdlatex-command-alist '(("enumalph" "Ben's enumerate with alpha items"
+                                 "" cdlatex-environment ("enumalph") t nil)
+                                ("question" "Ben's question for tests"
+                                 "" cdlatex-environment ("question") t nil)
+                                ("vsp" "vspace" "\\vspace{?}" cdlatex-position-cursor nil t nil)
+                                ("rule" "rule" "\\rule{?}{0.8pt}" cdlatex-position-cursor nil t nil)
+                                ("includegraphics" "includegraphics" "\\includegraphics[width=?]{}" cdlatex-position-cursor nil t nil)))
+  ;; TODO: make it so 'r is removed from cdlatex-math-modify-alist so we're can be typed
+  ;;       also 'l
+  )
 
 (use-package adaptive-wrap)
 
-(use-package evil-tex
-  :config
-  (add-hook `LaTeX-mode-hook #'evil-tex-mode))
-
-(use-package yasnippet
-  :config
-  (setq yas-snippet-dirs '("~/.noivy-emacs.d/snippets"))
-  (yas-reload-all)
-  (setq yas-triggers-in-field t))
+;; cdlatex supersedes yasnippet
+;; (use-package yasnippet
+;;   :config
+;;   (setq yas-snippet-dirs '("~/.noivy-emacs.d/snippets"))
+;;   (yas-reload-all)
+;;   (setq yas-triggers-in-field t))
 
 (use-package markdown-mode
   :mode ("\\.md\\'" . gfm-mode)
@@ -955,13 +951,14 @@ point. "
                                 (setq-local corfu-auto t)
                                 (setq-local corfu-auto-delay 0.1)
                                 (setq-local corfu-auto-prefix 2)
+                                (setq ledger-post-amount-alignment-column 52)
                                 (corfu-mode)))
   
-  (evil-define-key '(normal insert) ledger-mode-map (kbd "s-j") 'ledger-navigate-next-xact-or-directive)
-  (evil-define-key '(normal insert) ledger-mode-map (kbd "s-k") 'ledger-navigate-prev-xact-or-directive)
-  (evil-define-key 'normal ledger-reconcile-mode-map (kbd "SPC") 'ledger-reconcile-toggle)
-  (evil-define-key '(normal insert) ledger-mode-map (kbd "s-t") 'ben/insert-date)
-  (evil-define-key '(normal insert) ledger-mode-map (kbd "s-a") 'ben/insert-xact)
+  ;; (evil-define-key '(normal insert) ledger-mode-map (kbd "s-j") 'ledger-navigate-next-xact-or-directive)
+  ;; (evil-define-key '(normal insert) ledger-mode-map (kbd "s-k") 'ledger-navigate-prev-xact-or-directive)
+  (define-key ledger-reconcile-mode-map (kbd "SPC") 'ledger-reconcile-toggle)
+  (define-key ledger-mode-map (kbd "s-t") 'ben/insert-date)
+  (define-key ledger-mode-map (kbd "s-a") 'ben/insert-xact)
 
   (setq ledger-reconcile-finish-force-quit t)
   (setq ledger-reports 
@@ -1012,7 +1009,7 @@ point. "
     (unless (= 0 (current-column))
       (newline))
     (ben/insert-date)
-    (evil-append 1)
+    ;; (evil-append 1)
     (let ((snippet (concat "
       $ 
     " (cond ((equal (buffer-name) "529.ledger") "assets:529")
@@ -1114,22 +1111,22 @@ go to next field."
         (buffer-substring-no-properties beg end))))
   )
 
-(use-package evil-ledger
-  :ensure t
-  :after ledger-mode
-  :config
-  (setq evil-ledger-sort-key "S")
-  (add-hook 'ledger-mode-hook #'evil-ledger-mode))
+;; (use-package evil-ledger
+;;   :ensure t
+;;   :after ledger-mode
+;;   :config
+;;   (setq evil-ledger-sort-key "S")
+;;   (add-hook 'ledger-mode-hook #'evil-ledger-mode))
 
 (use-package org-tree-slide)
-;; This makes it so ledger-read-date defaults to 2023, for easier data entry:s
+;; This makes it so ledger-read-date defaults to 2023, for easier data entry
 (defun decode-time-mock (orig &rest args)
    (if args
    (apply orig args)
- '(0 0 0 1 1 2023 1 nil -18000)))
+ '(0 0 0 1 1 2024 1 nil -18000)))
 
 (defun decode-time-mock (orig &rest args)
-'(0 0 0 1 1 2023 1 nil -18000))
+'(0 0 0 1 1 2024 1 nil -18000))
  (advice-add 'decode-time :around 'decode-time-mock)
  (advice-remove 'decode-time 'decode-time-mock)
 
