@@ -460,13 +460,13 @@
         affe-highlight-function #'orderless--highlight
         ;; -a is important!
         ;;affe-find-command  "fd -H -a --color=never -p")
-        affe-find-command "/home/ben/nxc/scripts/for_affe.sh")
+        affe-find-command "/home/ben/OneDrive/scripts/for_affe.sh")
         ;; below had some strange behavior.
         ;; affe-find-command "rg --color=never --hidden --files --sortr accessed")
   (consult-customize affe-grep affe-find :preview-key (kbd "M-."))
 
   (global-set-key (kbd "s-,")  #'(lambda () (interactive)
-                                   (affe-find "/home/ben/nxc" nil)))
+                                   (affe-find "/home/ben/OneDrive" nil)))
   (global-set-key (kbd "s-<")  #'(lambda () (interactive)
                                    (affe-find "/home/ben/" nil)))
   (global-set-key (kbd "s-.")  #'(lambda () (interactive)
@@ -576,12 +576,25 @@ targets."
     (interactive "G")
     (call-process "xournalpp" nil 0 nil (replace-regexp-in-string "^~" "/home/ben" file)))
 
-  (define-key embark-file-map (kbd "b") 'ben/nxc-link)
   (defun ben/nxc-link (file)
     "Get public nextcloud link to FILE, and copy it to clipboard."
     (interactive "G")
     (shell-command (concat "python /home/ben/nxc/scripts/nextcloud_link.py \""
                            (replace-regexp-in-string "^~" "/home/ben" file) "\"")))
+
+  (define-key embark-file-map (kbd "b") 'ben/onedrive-link)
+  (defun ben/onedrive-link (file)
+    "Get public onedrive link to FILE, and copy it to clipboard."
+    (interactive "G")
+    (let ((output (shell-command-to-string
+                   (concat "onedrive --create-share-link "
+                           (replace-regexp-in-string "^.*OneDrive/" "" file)))))
+      (if (string-match "File Shareable Link: \\(https://[^\n\r]+\\)" output)
+          (let ((url (match-string 1 output)))
+            (kill-new url)
+            (message "OneDrive share link copied to clipboard: %s" url))
+        (message "Error: Could not extract share link from output: %s" output))))
+
   (defun ben/db-link (file)
     "Get public dropbox link to FILE, and copy it to clipboard."
     (interactive "G")
@@ -597,9 +610,9 @@ targets."
 ;; Then sometimes, such as when using embark-act, quitting the minibuffer
 ;; quit BOTH windows.
 
-(defun ben-affe-nxc ()
+(defun ben-affe-onedrive ()
   (interactive)
-  (affe-find "/home/ben/nxc" nil))
+  (affe-find "/home/ben/OneDrive" nil))
 
 (defun ben-affe-make-frame ()
     "Make a new frame for affe-find"
@@ -608,7 +621,7 @@ targets."
     (select-frame frame)
     (switch-to-buffer " ben-affe-make-frame-hidden-buffer")
   (condition-case nil
-      (call-interactively 'ben-affe-nxc)
+      (call-interactively 'ben-affe-onedrive)
     ((quit error user-error)
       (delete-frame frame)))
     (delete-frame frame)))
@@ -658,7 +671,7 @@ targets."
   (setq org-cycle-emulate-tab nil)
   (setq org-M-RET-may-split-line nil)
   (setq org-src-tab-acts-natively t)
-  (setq org-directory "~/nxc/org")
+  (setq org-directory "~/OneDrive/org")
   (setq org-default-notes-file (concat org-directory "/gtd.org"))
   ;; Was this causing org-clocking-buffer exitting problems?
   ;; (setq org-clock-sound "/home/ben/org/reference/mixkit-achievement-bell-600.wav")
@@ -731,7 +744,7 @@ point. "
   
   (setq org-agenda-skip-scheduled-if-done t
         org-todo-keywords '((sequence "TODO(t)" "WAITING(w)" "|" "DONE(d)" "SOMEDAY(s)" "CANCELLED(c)"))
-        org-agenda-files '("~/nxc/org/inbox.org" "~/nxc/org/gtd.org"))
+        org-agenda-files '("~/OneDrive/org/inbox.org" "~/OneDrive/org/gtd.org"))
   ;; (setq org-capture-templates
   ;;       (doct `(("Binding" :keys "b"
   ;;                :type entry
@@ -938,7 +951,7 @@ point. "
   (dap-register-debug-template "Python :: Run file (buffer) (Ben)"
                                (list :type "python"
                                      :args ""
-                                     :cwd "/home/ben/nxc/room_scheduler"
+                                     :cwd "/home/ben/OneDrive/room_scheduler"
                                      :module nil
                                      :program nil
                                      :request "launch"
