@@ -112,7 +112,7 @@
   (set-frame-font "DejaVu Sans Mono 11" nil t)
   ;(set-frame-font "Iosevka 11" nil t)
   (setq-default indent-tabs-mode nil)
-  (menu-bar-mode -1)
+  (menu-bar-mode 1)
   (tool-bar-mode -1)
   (scroll-bar-mode -1)
   (setq mouse-wheel-scroll-amount '(1))
@@ -138,6 +138,10 @@
   ;; this puts backup files in user-emacs-directory/backups/
   (setq backup-directory-alist
         `(("." . ,(expand-file-name "backups/" user-emacs-directory))))
+  ;; summer 2025: all file/dired buffers auto-revert when changed on disk,
+  ;; unless it has unsaved changes. This avoids problems with onedrive/preview
+  ;; generating spammy "revert buffer? y/n" prompts.
+  (global-auto-revert-mode)
   (global-set-key (kbd "C-s") 'save-buffer)
   (global-set-key (kbd "s-s") 'isearch-forward)
   (global-set-key (kbd "s-r") 'isearch-backward)
@@ -148,6 +152,8 @@
   (global-set-key (kbd "s-2") 'split-window-below)
   (global-set-key (kbd "s-3") 'split-window-right)
   (global-set-key (kbd "s-4") 'ctl-x-4-prefix)
+  (global-set-key (kbd "s-h") 'point-to-register) ;s-h h stores the current point as register h
+  (global-set-key (kbd "s-j") 'register-to-point) ;s-j h moves you to point in register h
   (global-set-key (kbd "C-t") 'completion-at-point)
   (global-set-key (kbd "C-v") 'scroll-down-line)
   (global-set-key (kbd "M-v") 'scroll-up-line)
@@ -846,11 +852,13 @@ point. "
   :mode ("\\.r\\'" . ess-r-mode))
 
 (use-package auctex
-  ;; :straight auctex
   :config
+  (with-eval-after-load 'tex
+    (advice-add 'TeX-load-style :before-until 
+                (lambda (style) (string= style "comment"))))
   (setq TeX-auto-save t)
   (setq TeX-parse-self t)
-  ;; attempts to fix black font problem in preview
+;; attempts to fix black font problem in preview
 ;;  (setq preview-dvipng-image-has-transparent-background t)
 ;;  (setq preview-transparent-color '(default :background))
   (add-hook 'LaTeX-mode-hook (lambda ()
@@ -869,16 +877,84 @@ point. "
 			       (add-to-list 'TeX-view-program-selection
                                             '(output-pdf "Zathura"))
 			       (setq TeX-electric-sub-and-superscript nil)
-			       (setq +latex-indent-level-item-continuation 0)
                                (setq LaTeX-item-indent 0)
                                (setq LaTeX-indent-level 0)
                                (setq LaTeX-left-right-indent-level 0)
-                               (add-to-list 'latex-noindent-environments "questions")
-                               (add-to-list 'LaTeX-indent-environment-list
-                                            '("questions" current-indentation))
+                               (setq TeX-brace-indent-level 0)
+                               (setq-local electric-indent-mode nil)
+                               ;; just stop fucking indenting:
+                               (setq-local indent-line-function (lambda () (interactive)))
                                (setq preview-scale-function
                                      (lambda () (* 1.25
-                                                   (funcall (preview-scale-from-face))))))))
+                                                   (funcall (preview-scale-from-face)))))
+                               ;; makes preview ignore these things, which cause problems:
+                               (setq preview-default-preamble
+                                     (append preview-default-preamble
+                                             (list "\\PreviewEnvironment*{bbox}"
+                                                   "\\PreviewEnvironment*{notes}"
+                                                   "\\PreviewEnvironment*{book}"
+                                                   "\\PreviewEnvironment*{exercise}"
+                                                   "\\PreviewEnvironment*{example}"
+                                                   "\\PreviewEnvironment*{theorem}"
+                                                   "\\PreviewEnvironment*{definition}")))
+                               (preview-cache-preamble-off)
+                               ;; latex source background was hiding active region's face!
+                               (set-face-background 'preview-face nil)
+                               (setq reftex-plug-into-AUCTeX t)
+                               (setq LaTeX-style-list 
+                                     (remove "comment" LaTeX-style-list))
+  ))
+  
+  (defun ben/setup-python-layout ()
+  "Set up window layout with Python buffer in bottom left.
+Creates a layout with the current buffer in a large top window,
+and two side-by-side windows below: Python buffer (15 lines, 40 columns) 
+on the left, and another window on the right."
+  (interactive)
+  
+  ;; Start with a clean slate - current buffer stays in the remaining window
+  (delete-other-windows)
+  
+  ;; Split horizontally to create top and bottom sections
+  (split-window-below)
+  
+  ;; Move to bottom window and split it vertically
+  (other-window 1)
+  (split-window-right 40)
+  
+  ;; Resize bottom-left window to be exactly 12 lines tall
+  (let ((current-height (window-height))
+        (desired-height 15))
+    (when (> current-height desired-height)
+      (window-resize nil (- desired-height current-height))))
+  
+  ;; Handle Python buffer in the current window (bottom left)
+  (let ((python-buffer (get-buffer "*Python*")))
+    (if python-buffer
+        ;; Python buffer exists, switch to it
+        (progn
+          (switch-to-buffer python-buffer)
+          (message "Switched to existing Python buffer"))
+      ;; No Python buffer exists, create one
+      (progn
+        (run-python (concat python-shell-interpreter
+                            " -i /home/ben/OneDrive/Courses/270/my_book/mat.py"))
+        ;; Switch to the newly created Python buffer
+        (switch-to-buffer "*Python*")
+        ;; Execute the specified Python file
+        ;; (goto-char (point-max))
+        ;; (insert "exec(open(\"/home/ben/OneDrive/Courses/270/my_book/mat.py\").read())")
+        ;; (comint-send-input)             
+        (message "Created Python buffer and executed mat.py")))
+    (define-key python-mode-map (kbd "C-c m") 'mf-matrix-to-latex-matrix)
+    (define-key inferior-python-mode-map (kbd "C-c m") 'mf-matrix-to-latex-matrix)
+    (define-key python-mode-map (kbd "C-c v") 'mf-matrix-to-latex-vectors)
+    (define-key inferior-python-mode-map (kbd "C-c v") 'mf-matrix-to-latex-vectors)
+    (define-key python-mode-map (kbd "C-c e") 'mf-matrix-to-system-of-eqns)
+    (define-key inferior-python-mode-map (kbd "C-c e") 'mf-matrix-to-system-of-eqns)))
+  (global-set-key (kbd "C-c p") 'ben/setup-python-layout)
+  (load "/home/ben/.emacs.d/matrix-formatter.el")
+  )
 
 (use-package cdlatex
   :ensure t
@@ -893,6 +969,9 @@ point. "
   (setq cdlatex-env-alist '(("enumalph" "\\begin{enumerate}[label=(\\alph*)]
 \\itemAUTOLABEL ?
 \\end{enumerate}" "\\itemAUTOLABEL ?")
+                            ("enumroman" "\\begin{enumerate}[label=(\\roman*)]
+\\itemAUTOLABEL ?
+\\end{enumerate}" "\\itemAUTOLABEL ?")
                             ("question" "\\begin{q}{?}
 ?
 \\end{q}" nil)))
@@ -902,12 +981,34 @@ point. "
                                  "" cdlatex-environment ("question") t nil)
                                 ("vsp" "vspace" "\\vspace{?}" cdlatex-position-cursor nil t nil)
                                 ("rule" "rule" "\\rule{?}{0.8pt}" cdlatex-position-cursor nil t nil)
-                                ("includegraphics" "includegraphics" "\\includegraphics[width=?]{}" cdlatex-position-cursor nil t nil)))
+                                ("includegraphics" "includegraphics" "\\includegraphics[width=?]{}"
+                                 cdlatex-position-cursor nil t nil)))
   ;; TODO: make it so 'r is removed from cdlatex-math-modify-alist so we're can be typed
   ;;       also 'l
   )
 
 (use-package adaptive-wrap)
+
+;; xenops does the same thing as preview-latex but it seems much simpler to use.
+;; preview-latex was giving me so many headaches. After I finally got preview-latex running fine
+;; I heard about xenops and had to try it!
+;; After some messing around, it looks mildly buggy and not very well maintained.
+;; One issue: after increasing size, editing an equation, and rendering again, the size is small again.
+;; Also a little slower than preview-latex. One advantage it has is it can show tikz pictures and tables.
+;; Saving this in case I want to try again later.
+;; (use-package xenops
+;;   :ensure t
+;;   :config
+;;   ;; get it to call lualatex instead of latex.
+;;   (setf (plist-get (alist-get 'dvipng xenops-math-latex-process-alist) :latex-compiler)
+;;       '("lualatex -interaction nonstopmode -shell-escape -output-format dvi -output-directory %o %f"))
+
+;;   (setf (plist-get (alist-get 'dvisvgm xenops-math-latex-process-alist) :latex-compiler)
+;;         '("lualatex -interaction nonstopmode -shell-escape -output-format dvi -output-directory %o %f"))
+;;   (xenops-increase-size)
+;;   (xenops-increase-size)
+;;   )
+
 
 ;; cdlatex supersedes yasnippet
 ;; (use-package yasnippet
@@ -947,7 +1048,6 @@ point. "
   :custom
   (dap-python-debugger 'debugpy)
   :config
-  ;; the default thing wasn't working because of a problem with cwd?
   (dap-register-debug-template "Python :: Run file (buffer) (Ben)"
                                (list :type "python"
                                      :args ""
